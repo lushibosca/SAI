@@ -2968,7 +2968,7 @@
                     </svg>
                     Ajustes
                 </h3>
-                <span class="modal-header-version">v265</span>
+                <span class="modal-header-version">v269</span>
             </div>
 
             <div class="modal-scroll-body">
@@ -5416,253 +5416,213 @@
                 document.head.appendChild(el);
             }
 
-            function renderDashboard() {
-                _inyectarStaggerChips();
-                const disps = _data.dispositivos;
-                const grabs = [..._data.grabadores].sort((a, b) => (a.descripcion || '').localeCompare(b.descripcion || ''));
+            function _renderResumenGeneral(disps, idsEnProd) {
+                const tiposConDisps = new Set(disps.map(d => d.tipo));
+                const tiposBuitin = Object.keys(S.TIPOS_BUILTIN);
+                const tiposCustom = Object.keys(S.TIPOS).filter(k => !S.TIPOS_BUILTIN[k] && tiposConDisps.has(k)).sort();
+                const tiposOrden = [...tiposBuitin, ...tiposCustom];
 
-                const idsEnProd = new Set([
-                    ...grabs.flatMap(g => g.canales_data.filter(c => c.dispositivoId).map(c => c.dispositivoId)),
-                    ...grabs.filter(g => g.dispositivoId).map(g => g.dispositivoId),
-                    ...(_data.otros_prod || []).filter(o => o.dispositivoId).map(o => o.dispositivoId)
-                ]);
+                const ESTADOS_DEFS = [
+                    { key: 'produccion', label: 'En producción' },
+                    { key: 'disponible', label: 'Disponibles' },
+                    { key: 'averiado', label: 'Averiados' },
+                    { key: 'revisar', label: 'A revisar' },
+                    { key: 'desafectado', label: 'Desafectados' },
+                ];
 
-                // ── Resumen general (Estructura 20/80 + Animación Perfecta V4) ───────────
-                (() => {
-                    const tiposConDisps = new Set(disps.map(d => d.tipo));
-                    const tiposBuitin = Object.keys(S.TIPOS_BUILTIN);
-                    const tiposCustom = Object.keys(S.TIPOS).filter(k => !S.TIPOS_BUILTIN[k] && tiposConDisps.has(k)).sort();
-                    const tiposOrden = [...tiposBuitin, ...tiposCustom];
+                // --- HTML: Vista General ---
+                const chipTotal = `
+                <div class="dash-chip-main">
+                    <div class="stat-chip-valor">${disps.length}</div>
+                    <div class="stat-chip-label">Dispositivos en total</div>
+                </div>`;
 
-                    const ESTADOS_DEFS = [
-                        { key: 'produccion', label: 'En producción' },
-                        { key: 'disponible', label: 'Disponibles' },
-                        { key: 'averiado', label: 'Averiados' },
-                        { key: 'revisar', label: 'A revisar' },
-                        { key: 'desafectado', label: 'Desafectados' },
-                    ];
+                const chipsTipo = tiposOrden.map(tipoKey => {
+                    const tc = S.TIPOS[tipoKey];
+                    if (!tc) return '';
+                    const n = disps.filter(d => d.tipo === tipoKey).length;
+                    return `
+                    <div class="stat-chip stat-chip-tipo" onclick="_toggleTipoDetalle('${tipoKey}')">
+                        <div class="stat-chip-valor">${n}</div>
+                        <div class="stat-chip-label">${tc.emoji} ${(tc.label + (tipoKey === 'camara' ? 's' : '')).toUpperCase()}</div>
+                        <span class="stat-chip-arrow">▶</span>
+                    </div>`;
+                }).join('');
 
-                    // --- HTML: Vista General ---
-                    const chipTotal = `
-                    <div class="dash-chip-main">
-                        <div class="stat-chip-valor">${disps.length}</div>
-                        <div class="stat-chip-label">Dispositivos en total</div>
+                const panelGeneralHtml = `
+                <div class="dash-resumen-grid">
+                    <div class="dash-resumen-col-info">${chipTotal}</div>
+                    <div class="dash-resumen-col-data"><div class="dashboard-grid">${chipsTipo}</div></div>
+                </div>`;
+
+                // --- HTML: Vista de Detalle ---
+                let panelDetalleHtml = '';
+                if (_dashTipoAbierto && S.TIPOS[_dashTipoAbierto]) {
+                    const tc = S.TIPOS[_dashTipoAbierto];
+                    const dispsDelTipo = disps.filter(d => d.tipo === _dashTipoAbierto);
+                    const est = _estadosDeDisps(dispsDelTipo, idsEnProd);
+
+                    const chipSeleccionado = `
+                    <div class="dash-chip-main clickable">
+                        <div class="stat-chip-valor">${dispsDelTipo.length}</div>
+                        <div class="stat-chip-label">${tc.emoji} ${(tc.label + (_dashTipoAbierto === 'camara' ? 's' : '')).toUpperCase()}</div>
+                        <div class="stat-chip-volver">◀ VOLVER</div>
                     </div>`;
 
-                    const chipsTipo = tiposOrden.map(tipoKey => {
-                        const tc = S.TIPOS[tipoKey];
-                        if (!tc) return '';
-                        const n = disps.filter(d => d.tipo === tipoKey).length;
+                    const chipsEstado = ESTADOS_DEFS.map(e => {
+                        const n = est[e.key];
+                        const clickable = n > 0
+                            ? `class="stat-chip stat-chip-tipo" onclick="event.stopPropagation(); UI.irAActivosConFiltro('${_dashTipoAbierto}','${e.key}')"`
+                            : `class="stat-chip" onclick="event.stopPropagation();"`;
                         return `
-                        <div class="stat-chip stat-chip-tipo" onclick="_toggleTipoDetalle('${tipoKey}')">
-                            <div class="stat-chip-valor">${n}</div>
-                            <div class="stat-chip-label">${tc.emoji} ${(tc.label + (tipoKey === 'camara' ? 's' : '')).toUpperCase()}</div>
-                            <span class="stat-chip-arrow">▶</span>
+                        <div ${clickable}>
+                            <div class="stat-chip-valor stat-chip-val--${e.key}">${n}</div>
+                            <div class="stat-chip-label">${e.label}</div>
                         </div>`;
                     }).join('');
 
-                    const panelGeneralHtml = `
-                    <div class="dash-resumen-grid">
-                        <div class="dash-resumen-col-info">${chipTotal}</div>
-                        <div class="dash-resumen-col-data"><div class="dashboard-grid">${chipsTipo}</div></div>
+                    panelDetalleHtml = `
+                    <div class="dash-resumen-grid" onclick="_toggleTipoDetalle('${_dashTipoAbierto}')">
+                        <div class="dash-resumen-col-info">${chipSeleccionado}</div>
+                        <div class="dash-resumen-col-data"><div class="dashboard-grid">${chipsEstado}</div></div>
                     </div>`;
-
-                    // --- HTML: Vista de Detalle ---
-                    let panelDetalleHtml = '';
-                    if (_dashTipoAbierto && S.TIPOS[_dashTipoAbierto]) {
-                        const tc = S.TIPOS[_dashTipoAbierto];
-                        const dispsDelTipo = disps.filter(d => d.tipo === _dashTipoAbierto);
-                        const est = _estadosDeDisps(dispsDelTipo, idsEnProd);
-
-                        // 1. Le quitamos el onclick a este chip principal porque ahora lo maneja el fondo
-                        const chipSeleccionado = `
-                        <div class="dash-chip-main clickable">
-                            <div class="stat-chip-valor">${dispsDelTipo.length}</div>
-                            <div class="stat-chip-label">${tc.emoji} ${(tc.label + (_dashTipoAbierto === 'camara' ? 's' : '')).toUpperCase()}</div>
-                            <div class="stat-chip-volver">◀ VOLVER</div>
-                        </div>`;
-
-                        const chipsEstado = ESTADOS_DEFS.map(e => {
-                            const n = est[e.key];
-                            // 2. MAGIA: Usamos event.stopPropagation() en todos los mosaicos. 
-                            // Esto frena el clic ahí mismo, evitando que el "fondo" se entere de que tocaste.
-                            const clickable = n > 0
-                                ? `class="stat-chip stat-chip-tipo" onclick="event.stopPropagation(); UI.irAActivosConFiltro('${_dashTipoAbierto}','${e.key}')"`
-                                : `class="stat-chip" onclick="event.stopPropagation();"`;
-
-                            return `
-                            <div ${clickable}>
-                                <div class="stat-chip-valor stat-chip-val--${e.key}">${n}</div>
-                                <div class="stat-chip-label">${e.label}</div>
-                            </div>`;
-                        }).join('');
-
-                        // 3. Le ponemos el onclick (y un cursor de manito) a TODA la cuadrícula invisible.
-                        panelDetalleHtml = `
-                        <div class="dash-resumen-grid" onclick="_toggleTipoDetalle('${_dashTipoAbierto}')">
-                            <div class="dash-resumen-col-info">${chipSeleccionado}</div>
-                            <div class="dash-resumen-col-data"><div class="dashboard-grid">${chipsEstado}</div></div>
-                        </div>`;
-                    }
-
-                    // --- MOTOR DE ANIMACIÓN ---
-                    const contenedor = document.getElementById('dash-disp-tree');
-                    const enDetalle = !!(_dashTipoAbierto && S.TIPOS[_dashTipoAbierto]);
-
-                    let wrap = contenedor.querySelector('.dash-slide-wrap');
-                    if (!wrap) {
-                        contenedor.innerHTML = `
-                            <div class="dash-slide-wrap">
-                                <div class="dash-slide-panel" id="dash-panel-izq"></div>
-                                <div class="dash-slide-panel" id="dash-panel-der"></div>
-                            </div>`;
-                        wrap = contenedor.querySelector('.dash-slide-wrap');
-                    }
-
-                    const panelIzq = wrap.querySelector('#dash-panel-izq');
-                    const panelDer = wrap.querySelector('#dash-panel-der');
-
-                    // 1. PRIMERO: Medimos y congelamos la altura actual ANTES de tocar los paneles
-                    const alturaActual = contenedor.offsetHeight;
-                    const esPrimeraCarga = alturaActual === 0;
-
-                    if (!esPrimeraCarga) {
-                        contenedor.style.transition = 'none';
-                        contenedor.style.height = alturaActual + 'px';
-                    }
-
-                    // 2. SEGUNDO: Recién ahora desocultamos los paneles (como la caja ya está congelada, no hay saltos)
-                    panelIzq.style.height = '';
-                    panelIzq.style.overflow = '';
-                    panelDer.style.height = '';
-                    panelDer.style.overflow = '';
-
-                    // 3. Inyectamos los datos nuevos
-                    panelIzq.innerHTML = panelGeneralHtml;
-                    panelDer.innerHTML = panelDetalleHtml || '';
-
-                    // 4. Forzamos al navegador a procesar el HTML (Reflow)
-                    void contenedor.offsetHeight;
-
-                    // 5. Medimos exactamente cuánto ocupa el contenido al que vamos a saltar
-                    const panelActivo = enDetalle ? panelDer : panelIzq;
-                    const alturaObjetivo = panelActivo.offsetHeight;
-
-                    // 6. Aplicamos los cambios
-                    if (esPrimeraCarga) {
-                        // Al arrancar, ajustamos la vista sin hacer animaciones
-                        wrap.classList.toggle('en-detalle', enDetalle);
-                        if (enDetalle) {
-                            panelIzq.style.height = '0px';
-                            panelIzq.style.overflow = 'hidden';
-                        } else {
-                            panelDer.style.height = '0px';
-                            panelDer.style.overflow = 'hidden';
-                        }
-                    } else {
-                        // Al hacer clic, animamos deslizando y cambiando altura al mismo tiempo
-                        requestAnimationFrame(() => {
-                            contenedor.style.transition = 'height 0.35s cubic-bezier(0.4, 0, 0.2, 1)';
-                            wrap.classList.toggle('en-detalle', enDetalle);
-
-                            if (alturaObjetivo > 0) contenedor.style.height = alturaObjetivo + 'px';
-
-                            // 7. Cuando termina la animación, soltamos el contenedor y "aplastamos" el panel invisible
-                            setTimeout(() => {
-                                if (contenedor.style.height === alturaObjetivo + 'px') {
-                                    contenedor.style.height = '';
-                                    contenedor.style.transition = '';
-
-                                    if (enDetalle) {
-                                        panelIzq.style.height = '0px';
-                                        panelIzq.style.overflow = 'hidden';
-                                    } else {
-                                        panelDer.style.height = '0px';
-                                        panelDer.style.overflow = 'hidden';
-                                    }
-                                }
-                            }, 360);
-                        });
-                    }
-                })();
-
-                // ── Grabadores resumen ───────────────────────────────────
-                const dashGrabadores = document.getElementById('dash-grabadores');
-
-                if (grabs.length === 0) {
-                    dashGrabadores.innerHTML = `<div class="dash-empty-text">Sin grabadores en producción</div>`;
-                } else {
-                    // 1. Calcular totales globales
-                    let totalCanales = 0;
-                    let totalOcupados = 0;
-
-                    grabs.forEach(g => {
-                        totalCanales += g.canales_n;
-                        totalOcupados += g.canales_data.filter(c => c.dispositivoId).length;
-                    });
-
-                    const totalLibres = totalCanales - totalOcupados;
-                    const pctOcupado = totalCanales > 0 ? Math.round((totalOcupados / totalCanales) * 100) : 0;
-                    const pctLibre = totalCanales > 0 ? (100 - pctOcupado) : 0;
-
-                    // 2. Armar el panel de estadísticas globales
-                    const htmlTotales = `
-                    <div class="dash-grab-totales">
-                        <div class="dash-grab-totales-title">Canales de grabación</div>
-                        <div class="dash-grab-grid">
-                            <div class="dash-grab-col">
-                                <div class="dash-grab-label">Capacidad Instalada</div>
-                                <div class="dash-grab-val">${totalCanales}</div>
-                            </div>
-                            <div class="dash-grab-col--mid">
-                                <div class="dash-grab-label">Utilizados</div>
-                                <div class="dash-grab-val dash-grab-val--blue">${totalOcupados} <span class="dash-grab-val-sub">(${pctOcupado}%)</span></div>
-                            </div>
-                            <div class="dash-grab-col">
-                                <div class="dash-grab-label">Disponibles</div>
-                                <div class="dash-grab-val dash-grab-val--green">${totalLibres} <span class="dash-grab-val-sub">(${pctLibre}%)</span></div>
-                            </div>
-                        </div>
-                    </div>`;
-
-                    // 3. Armar la lista individual (con la lógica del semáforo)
-                    const htmlLista = grabs.map(g => {
-                        const ocup = g.canales_data.filter(c => c.dispositivoId).length;
-                        const libre = g.canales_n - ocup;
-                        const pct = Math.round((ocup / g.canales_n) * 100);
-
-                        let colorBarra = 'var(--c-red)';
-                        if (pct <= 35) colorBarra = 'var(--c-green)';
-                        else if (pct <= 65) colorBarra = 'var(--c-blue)';
-                        else if (pct <= 85) colorBarra = 'var(--c-orange)';
-
-                        return `<div class="dash-grab-row">
-                        <div class="dash-grab-row-header">
-                            <span class="dash-grab-row-nombre">${esc(g.descripcion)}</span>
-                            <span class="badge badge-${g.tipo}-filled">${g.tipo.toUpperCase()}</span>
-                            <span class="dash-grab-row-ip">${g.ip ? esc(g.ip) : ''}</span>
-                        </div>
-                        <div class="dash-grab-row-stats">
-                            <span>${ocup}/${g.canales_n} canales ocupados · ${libre} libres</span>
-                            <span class="dash-grab-row-pct">${pct}%</span>
-                        </div>
-                        <div class="dash-grab-barra">
-                            <div class="dash-grab-barra-fill" style="width:${pct}%;background:${colorBarra}"></div>
-                        </div>
-                    </div>`;
-                    }).join('');
-
-                    // 4. Inyectar todo junto
-                    dashGrabadores.innerHTML = htmlTotales + htmlLista;
                 }
 
-                // ── Cámaras resumen ──────────────────────────────────────
-                const camarasDisps = disps.filter(d => d.tipo === 'camara');
-                const camarasEnProd = camarasDisps.filter(d => idsEnProd.has(d.id));
-                const enProd = camarasEnProd.length;
-                const disponibles = camarasDisps.length - enProd;
+                // --- Motor de animación slide ---
+                const contenedor = document.getElementById('dash-disp-tree');
+                const enDetalle = !!(_dashTipoAbierto && S.TIPOS[_dashTipoAbierto]);
 
-                // Actualizamos las clases de la botonera fija sin destruirla
+                let wrap = contenedor.querySelector('.dash-slide-wrap');
+                if (!wrap) {
+                    contenedor.innerHTML = `
+                        <div class="dash-slide-wrap">
+                            <div class="dash-slide-panel" id="dash-panel-izq"></div>
+                            <div class="dash-slide-panel" id="dash-panel-der"></div>
+                        </div>`;
+                    wrap = contenedor.querySelector('.dash-slide-wrap');
+                }
+
+                const panelIzq = wrap.querySelector('#dash-panel-izq');
+                const panelDer = wrap.querySelector('#dash-panel-der');
+
+                const alturaActual = contenedor.offsetHeight;
+                const esPrimeraCarga = alturaActual === 0;
+
+                if (!esPrimeraCarga) {
+                    contenedor.style.transition = 'none';
+                    contenedor.style.height = alturaActual + 'px';
+                }
+
+                panelIzq.style.height = '';
+                panelIzq.style.overflow = '';
+                panelDer.style.height = '';
+                panelDer.style.overflow = '';
+
+                panelIzq.innerHTML = panelGeneralHtml;
+                panelDer.innerHTML = panelDetalleHtml || '';
+
+                void contenedor.offsetHeight;
+
+                const panelActivo = enDetalle ? panelDer : panelIzq;
+                const alturaObjetivo = panelActivo.offsetHeight;
+
+                if (esPrimeraCarga) {
+                    wrap.classList.toggle('en-detalle', enDetalle);
+                    if (enDetalle) {
+                        panelIzq.style.height = '0px';
+                        panelIzq.style.overflow = 'hidden';
+                    } else {
+                        panelDer.style.height = '0px';
+                        panelDer.style.overflow = 'hidden';
+                    }
+                } else {
+                    requestAnimationFrame(() => {
+                        contenedor.style.transition = 'height 0.35s cubic-bezier(0.4, 0, 0.2, 1)';
+                        wrap.classList.toggle('en-detalle', enDetalle);
+                        if (alturaObjetivo > 0) contenedor.style.height = alturaObjetivo + 'px';
+                        setTimeout(() => {
+                            if (contenedor.style.height === alturaObjetivo + 'px') {
+                                contenedor.style.height = '';
+                                contenedor.style.transition = '';
+                                if (enDetalle) {
+                                    panelIzq.style.height = '0px';
+                                    panelIzq.style.overflow = 'hidden';
+                                } else {
+                                    panelDer.style.height = '0px';
+                                    panelDer.style.overflow = 'hidden';
+                                }
+                            }
+                        }, 360);
+                    });
+                }
+            }
+
+            function _renderResumenGrabadores(grabs) {
+                const dashGrabadores = document.getElementById('dash-grabadores');
+                if (grabs.length === 0) {
+                    dashGrabadores.innerHTML = `<div class="dash-empty-text">Sin grabadores en producción</div>`;
+                    return;
+                }
+
+                let totalCanales = 0, totalOcupados = 0;
+                grabs.forEach(g => {
+                    totalCanales += g.canales_n;
+                    totalOcupados += g.canales_data.filter(c => c.dispositivoId).length;
+                });
+                const totalLibres = totalCanales - totalOcupados;
+                const pctOcupado = totalCanales > 0 ? Math.round((totalOcupados / totalCanales) * 100) : 0;
+                const pctLibre = totalCanales > 0 ? (100 - pctOcupado) : 0;
+
+                const htmlTotales = `
+                <div class="dash-grab-totales">
+                    <div class="dash-grab-totales-title">Canales de grabación</div>
+                    <div class="dash-grab-grid">
+                        <div class="dash-grab-col">
+                            <div class="dash-grab-label">Capacidad Instalada</div>
+                            <div class="dash-grab-val">${totalCanales}</div>
+                        </div>
+                        <div class="dash-grab-col--mid">
+                            <div class="dash-grab-label">Utilizados</div>
+                            <div class="dash-grab-val dash-grab-val--blue">${totalOcupados} <span class="dash-grab-val-sub">(${pctOcupado}%)</span></div>
+                        </div>
+                        <div class="dash-grab-col">
+                            <div class="dash-grab-label">Disponibles</div>
+                            <div class="dash-grab-val dash-grab-val--green">${totalLibres} <span class="dash-grab-val-sub">(${pctLibre}%)</span></div>
+                        </div>
+                    </div>
+                </div>`;
+
+                const htmlLista = grabs.map(g => {
+                    const ocup = g.canales_data.filter(c => c.dispositivoId).length;
+                    const libre = g.canales_n - ocup;
+                    const pct = Math.round((ocup / g.canales_n) * 100);
+                    let colorBarra = 'var(--c-red)';
+                    if (pct <= 35) colorBarra = 'var(--c-green)';
+                    else if (pct <= 65) colorBarra = 'var(--c-blue)';
+                    else if (pct <= 85) colorBarra = 'var(--c-orange)';
+                    return `<div class="dash-grab-row">
+                    <div class="dash-grab-row-header">
+                        <span class="dash-grab-row-nombre">${esc(g.descripcion)}</span>
+                        <span class="badge badge-${g.tipo}-filled">${g.tipo.toUpperCase()}</span>
+                        <span class="dash-grab-row-ip">${g.ip ? esc(g.ip) : ''}</span>
+                    </div>
+                    <div class="dash-grab-row-stats">
+                        <span>${ocup}/${g.canales_n} canales ocupados · ${libre} libres</span>
+                        <span class="dash-grab-row-pct">${pct}%</span>
+                    </div>
+                    <div class="dash-grab-barra">
+                        <div class="dash-grab-barra-fill" style="width:${pct}%;background:${colorBarra}"></div>
+                    </div>
+                </div>`;
+                }).join('');
+
+                dashGrabadores.innerHTML = htmlTotales + htmlLista;
+            }
+
+            function _renderResumenCamaras(disps, grabs, idsEnProd) {
+                const camarasDisps = disps.filter(d => d.tipo === 'camara');
+                const enProd = camarasDisps.filter(d => idsEnProd.has(d.id)).length;
+
                 const btnForma = document.getElementById('mini-tab-forma');
                 const btnEdificio = document.getElementById('mini-tab-edificio');
                 if (btnForma) btnForma.classList.toggle('activa', _dashCamarasVista === 'forma');
@@ -5699,11 +5659,11 @@
                     if (filas.length === 0) {
                         vistaHtml = `<div class="dash-empty-text">Sin cámaras registradas</div>`;
                     } else {
-                        const col = (txt, color) =>
-                            `<span class="dash-cam-label-small" style="color:${color}">${txt}</span>`;
+                        const col = (txt, color) => `<span class="dash-cam-label-small" style="color:${color}">${txt}</span>`;
+                        const val = (n, color) => `<span class="dash-cam-val" style="color:${color}">${n}</span>`;
                         const header = `
                         <div class="dash-cam-header dash-cam-header--border">
-                            <span class="dash-cam-row-label"></span> 
+                            <span class="dash-cam-row-label"></span>
                             ${col('TOTAL', 'var(--text-disabled)')}
                             ${col('PROD.', 'var(--c-blue)')}
                             ${col('DISP.', 'var(--c-green)')}
@@ -5711,8 +5671,6 @@
                             ${col('REVIS.', 'var(--c-purple)')}
                             ${col('DESAF.', 'var(--text-muted)')}
                         </div>`;
-                        const val = (n, color) =>
-                            `<span class="dash-cam-val" style="color:${color}">${n}</span>`;
                         const rows = filas.map((f, i) => `
                         <div class="dash-cam-row${i < filas.length - 1 ? ' dash-cam-row--border' : ''}">
                             <span class="dash-cam-row-label">${f.label}</span>
@@ -5725,7 +5683,6 @@
                         </div>`).join('');
                         vistaHtml = header + rows;
                     }
-
                 } else {
                     const conteoEdificio = {};
                     grabs.forEach(g => {
@@ -5757,8 +5714,21 @@
                     }
                 }
 
-                document.getElementById('dash-camaras').innerHTML =
-                    `<div class="flex-col">${vistaHtml}</div>`;
+                document.getElementById('dash-camaras').innerHTML = `<div class="flex-col">${vistaHtml}</div>`;
+            }
+
+            function renderDashboard() {
+                _inyectarStaggerChips();
+                const disps = _data.dispositivos;
+                const grabs = [..._data.grabadores].sort((a, b) => (a.descripcion || '').localeCompare(b.descripcion || ''));
+                const idsEnProd = new Set([
+                    ...grabs.flatMap(g => g.canales_data.filter(c => c.dispositivoId).map(c => c.dispositivoId)),
+                    ...grabs.filter(g => g.dispositivoId).map(g => g.dispositivoId),
+                    ...(_data.otros_prod || []).filter(o => o.dispositivoId).map(o => o.dispositivoId)
+                ]);
+                _renderResumenGeneral(disps, idsEnProd);
+                _renderResumenGrabadores(grabs);
+                _renderResumenCamaras(disps, grabs, idsEnProd);
             }
 
             /* ---------- ACTIVOS ---------- */
@@ -8989,7 +8959,7 @@
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 268
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 269
     // ====================================================================
 
      - CAMBIOS 
