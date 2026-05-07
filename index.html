@@ -54,21 +54,35 @@
             --hover: brightness(0.9);
             --modal-max-w-sm: 360px;
             /* ── Escala de espaciado (7 niveles) ── */
-            --sp-1: 0.25rem;   /* micro  */
-            --sp-2: 0.4rem;    /* xs     */
-            --sp-3: 0.5rem;    /* sm     */
-            --sp-4: 0.75rem;   /* md     */
-            --sp-5: 1rem;      /* lg     */
-            --sp-6: 1.5rem;    /* xl     */
-            --sp-7: 2rem;      /* 2xl    */
+            --sp-1: 0.25rem;
+            /* micro  */
+            --sp-2: 0.4rem;
+            /* xs     */
+            --sp-3: 0.5rem;
+            /* sm     */
+            --sp-4: 0.75rem;
+            /* md     */
+            --sp-5: 1rem;
+            /* lg     */
+            --sp-6: 1.5rem;
+            /* xl     */
+            --sp-7: 2rem;
+            /* 2xl    */
             /* ── Escala tipográfica (7 niveles) ── */
-            --fs-xs:   0.7rem;   /* micro / decorativo */
-            --fs-sm:   0.75rem;  /* auxiliar / secundario */
-            --fs-base: 0.8rem;   /* texto base pequeño */
-            --fs-md:   0.85rem;  /* texto medio */
-            --fs-lg:   0.9rem;   /* cuerpo / destacado */
-            --fs-xl:   1rem;     /* títulos internos */
-            --fs-2xl:  1.1rem;   /* títulos card/header */
+            --fs-xs: 0.7rem;
+            /* micro / decorativo */
+            --fs-sm: 0.75rem;
+            /* auxiliar / secundario */
+            --fs-base: 0.8rem;
+            /* texto base pequeño */
+            --fs-md: 0.85rem;
+            /* texto medio */
+            --fs-lg: 0.9rem;
+            /* cuerpo / destacado */
+            --fs-xl: 1rem;
+            /* títulos internos */
+            --fs-2xl: 1.1rem;
+            /* títulos card/header */
         }
 
         body.dark-mode {
@@ -121,6 +135,7 @@
             max-width: 1300px;
             margin: 0 auto;
             padding: var(--sp-3);
+            padding-bottom: 5rem; /* ── Espacio extra al final de la página ── */
         }
 
         /* ============================================================
@@ -2464,7 +2479,11 @@
             min-width: 0;
         }
 
-
+        /* ── IP Copiable ── */
+        .ip-copiable {
+            cursor: pointer;
+            font-family: monospace;
+        }
 
         /* ANIMACIONES */
         @keyframes slideDownFade {
@@ -2568,6 +2587,10 @@
 
             .canal-slot-lista:hover {
                 filter: var(--hover);
+            }
+
+            .ip-copiable:hover {
+                color: var(--c-blue);
             }
         }
     </style>
@@ -2968,7 +2991,7 @@
                     </svg>
                     Ajustes
                 </h3>
-                <span class="modal-header-version">v269</span>
+                <span class="modal-header-version">v270</span>
             </div>
 
             <div class="modal-scroll-body">
@@ -5982,7 +6005,7 @@
                             } else if (asig.tipo === 'otro_prod') {
                                 // Otros y Grabadores solo necesitan la descripción en el badge (y la IP si la hay)
                                 return {
-                                    linea: '', 
+                                    linea: '',
                                     desc: asig.item.descripcion || 'EN PRODUCCIÓN',
                                     ip: asig.item.ip || '',
                                 };
@@ -6001,7 +6024,7 @@
                             const descHtml = b.desc
                                 ? `<div class="text-truncate"><span class="badge ${badgeProdClass}" ${hoverTitle}>${esc(b.desc)}</span></div>` : '';
                             const lineaHtml = b.linea ? `<div class="text-truncate">${b.linea}</div>` : '';
-                            const ipHtml = b.ip ? `<div class="text-truncate">${esc(b.ip)}</div>` : '';
+                            const ipHtml = b.ip ? `<div class="text-truncate ip-copiable" onclick="UI.copiarAlPortapapeles('${esc(b.ip)}', event)" title="Copiar IP">${esc(b.ip)}</div>` : '';
                             asignInfo = `${descHtml}${lineaHtml}${ipHtml}`;
                         } else {
                             // ── Múltiples asignaciones: detectar campos comunes ──
@@ -6014,11 +6037,11 @@
                             const descComunHtml = (descUnica && descUnica !== '')
                                 ? `<div class="text-truncate"><span class="badge ${badgeProdClass}" ${hoverTitle}>${esc(descUnica)}</span></div>` : '';
                             const ipComunHtml = (ipUnica && ipUnica !== '')
-                                ? `<div class="text-truncate">${esc(ipUnica)}</div>` : '';
+                                ? `<div class="text-truncate ip-copiable" onclick="UI.copiarAlPortapapeles('${esc(ipUnica)}', event)" title="Copiar IP">${esc(ipUnica)}</div>` : '';
 
                             // Cada bloque (solo se renderiza si tiene línea o IP)
                             const bloquesHtml = bloques.map(b => {
-                                const ipBloque = (!ipUnica && b.ip) ? `<div class="text-truncate">${esc(b.ip)}</div>` : '';
+                                const ipBloque = (!ipUnica && b.ip) ? `<div class="text-truncate ip-copiable" onclick="UI.copiarAlPortapapeles('${esc(b.ip)}', event)" title="Copiar IP">${esc(b.ip)}</div>` : '';
                                 const lineaBloque = b.linea ? `<div class="text-truncate">${b.linea}</div>` : '';
                                 if (!lineaBloque && !ipBloque) return ''; // Ignoramos bloques vacíos
                                 return `<div class="asig-bloque">${lineaBloque}${ipBloque}</div>`;
@@ -6275,7 +6298,7 @@
                                 return `<div class="canal-slot-lista ocupado" data-canal="${c.canal}">
                                     <div class="canal-numero" style="${badgeStyle}">CH ${c.canal}</div>
                                     <div class="canal-dispositivo-nombre" title="${tituloHover}">${esc(tituloCanal)}</div>
-                                    <div class="canal-dispositivo-ip" title="${c.ip ? esc(c.ip) : ''}">${c.ip ? esc(c.ip) : ''}</div>
+                                    <div class="canal-dispositivo-ip ${c.ip ? 'ip-copiable' : ''}" ${c.ip ? `onclick="UI.copiarAlPortapapeles('${esc(c.ip)}', event)" title="Copiar IP"` : ''}>${c.ip ? esc(c.ip) : ''}</div>
                                 </div>`;
                             }
                             // Si es vista Mosaico (Tarjetas)
@@ -6283,7 +6306,7 @@
                                 return `<div class="canal-slot ocupado" data-canal="${c.canal}">
                                     <div class="canal-dispositivo-nombre" title="${tituloHover}">${esc(tituloCanal)}</div>
                                     <div class="canal-slot-footer">
-                                        <div class="canal-dispositivo-ip">${c.ip ? esc(c.ip) : ''}</div>
+                                        <div class="canal-dispositivo-ip ${c.ip ? 'ip-copiable' : ''}" ${c.ip ? `onclick="UI.copiarAlPortapapeles('${esc(c.ip)}', event)" title="Copiar IP"` : ''}>${c.ip ? esc(c.ip) : ''}</div>
                                         <div class="canal-numero" style="${badgeStyle}">CH ${c.canal}</div>
                                     </div>
                                 </div>`;
@@ -6317,7 +6340,7 @@
                             <div class="nvr-card-nombre">
                                 <span>${g.tipo === 'nvr' ? '📟' : '📼'} ${esc(g.descripcion)}</span>
                                 <span class="badge badge-${g.tipo}-filled">${g.tipo.toUpperCase()}</span>
-                                ${g.ip ? `<span class="nvr-card-ip">${esc(g.ip)}</span>` : ''}
+                                ${g.ip ? `<span class="nvr-card-ip ip-copiable" onclick="UI.copiarAlPortapapeles('${esc(g.ip)}', event)" title="Copiar IP">${esc(g.ip)}</span>` : ''}
                             </div>
                             <div class="nvr-card-meta">
                                 ${g.modelo ? `${esc(g.modelo)} · ` : ''}<span class="nvr-card-meta-ocupados">${ocupados}/${g.canales_n}</span> ocupados · <span class="nvr-card-meta-libres">${libres}</span> libres
@@ -6484,6 +6507,41 @@
                     localStorage.setItem('cctv_tema', String(oscuro));
                     const use = document.querySelector('#icono-tema use');
                     if (use) use.setAttribute('href', oscuro ? '#icon-sun' : '#icon-moon');
+                },
+
+                // ---- Utilidades ----
+                copiarAlPortapapeles(texto, event) {
+                    if (event) {
+                        event.preventDefault();
+                        event.stopPropagation(); // Evita que se abra el modal de editar
+                    }
+                    if (!texto) return;
+                    
+                    // Fallback para navegadores antiguos o sin HTTPS
+                    if (!navigator.clipboard || !window.isSecureContext) {
+                        const textArea = document.createElement("textarea");
+                        textArea.value = texto;
+                        textArea.style.position = "fixed";
+                        textArea.style.left = "-999999px";
+                        document.body.appendChild(textArea);
+                        textArea.focus();
+                        textArea.select();
+                        try {
+                            document.execCommand('copy');
+                            toast(`IP copiada: ${texto}`, 'success');
+                        } catch (err) {
+                            toast('No se pudo copiar al portapapeles', 'error');
+                        }
+                        textArea.remove();
+                        return;
+                    }
+                    
+                    // API Moderna (Recomendada)
+                    navigator.clipboard.writeText(texto).then(() => {
+                        toast(`IP copiada: ${texto}`, 'success');
+                    }).catch(() => {
+                        toast('No se pudo copiar al portapapeles', 'error');
+                    });
                 },
 
                 // ---- Gist ----
@@ -7072,6 +7130,14 @@
                         window.UI._estadoColapsadoPrevio = new Set(window.UI._activosCollapsed);
                     }
                     window.UI._activosCollapsed.clear();
+
+                    // ── MAGIA DE LA FOTO (PISOS): Hacemos lo mismo para los sub-grupos ──
+                    if (!window.UI._pisosCollapsed) window.UI._pisosCollapsed = new Set();
+                    if (!window.UI._estadoPisosPrevio) {
+                        window.UI._estadoPisosPrevio = new Set(window.UI._pisosCollapsed);
+                    }
+                    window.UI._pisosCollapsed.clear();
+                    // ────────────────────────────────────────────────────────────────────
                     // ────────────────────────────────────────────────────────────────────
 
                     renderActivos();
@@ -7646,14 +7712,6 @@
                         dispositivoId: g.dispositivoId || '',
                     };
 
-                    // deshabilitar botón eliminar si tiene canales ocupados
-                    const ocupados = g.canales_data.filter(c => c.dispositivoId).length;
-                    const btnElimGrab = document.querySelector('#modal-editar-grab .btn-delete');
-                    if (btnElimGrab) {
-                        btnElimGrab.disabled = ocupados > 0;
-                        btnElimGrab.title = ocupados > 0 ? `No se puede eliminar: ${ocupados} canal${ocupados === 1 ? '' : 'es'} ocupado${ocupados === 1 ? '' : 's'}` : '';
-                    }
-
                     MM.abrir('modal-editar-grab');
                     const btnVerActivo = document.getElementById('btn-ver-activo-grab');
                     if (btnVerActivo) btnVerActivo.style.display = g.dispositivoId ? '' : 'none';
@@ -7748,11 +7806,11 @@
                     if (!_editandoGrabId) return;
                     const g = _data.grabadores.find(x => x.id === _editandoGrabId);
                     const ocupados = g ? g.canales_data.filter(c => c.dispositivoId).length : 0;
-                    if (ocupados > 0) {
-                        toast(`No se puede eliminar: el grabador tiene ${ocupados} canal${ocupados === 1 ? '' : 'es'} ocupado${ocupados === 1 ? '' : 's'}. Desasigná las cámaras primero.`, 'error');
-                        return;
-                    }
-                    const ok = await confirmarModal(`¿Eliminar el grabador "${g?.descripcion}"?`);
+                    const avisoExtra = ocupados > 0 
+                        ? `\n¡Atención! Tiene ${ocupados} canal${ocupados === 1 ? '' : 'es'} ocupado${ocupados === 1 ? '' : 's'}. Las cámaras quedarán libres.` 
+                        : '';
+
+                    const ok = await confirmarModal(`¿Eliminar el grabador "${g?.descripcion}"?${avisoExtra}`);
                     if (!ok) return;
 
                     historial.empujar('Eliminar grabador');
@@ -8527,6 +8585,35 @@
             function _poblarSelectEdificio(selectId, seleccionado) {
                 const sel = document.getElementById(selectId);
                 if (!sel) return;
+
+                // ── MAGIA: Control automático del campo Piso ──
+                // Busca el input de piso deduciendo el ID a partir del select de edificio
+                const inputPisoId = selectId.replace('-edificio', '-piso');
+                const inputPiso = document.getElementById(inputPisoId);
+                
+                function _validarEstadoPiso() {
+                    if (!inputPiso) return;
+                    
+                    const sinEdificio = !sel.value || sel.value === '__agregar__';
+                    inputPiso.disabled = sinEdificio;
+                    
+                    if (sinEdificio) {
+                        inputPiso.value = ''; // Borra datos fantasma si se quita el edificio
+                        
+                        // Guardamos el placeholder original y mostramos un aviso
+                        if (!inputPiso.hasAttribute('data-ph')) {
+                            inputPiso.setAttribute('data-ph', inputPiso.placeholder);
+                        }
+                        inputPiso.placeholder = 'Requiere edificio';
+                    } else {
+                        // Restauramos el placeholder original (Ej: PB, 1, EP)
+                        if (inputPiso.hasAttribute('data-ph')) {
+                            inputPiso.placeholder = inputPiso.getAttribute('data-ph');
+                        }
+                    }
+                }
+                // ──────────────────────────────────────────────
+
                 sel.onchange = null;
                 sel.innerHTML = '<option value="">— Sin edificio —</option>';
                 S.edificios.forEach(nombre => {
@@ -8547,6 +8634,13 @@
                 optAgregar.value = '__agregar__';
                 optAgregar.textContent = '＋ Agregar edificio…';
                 sel.appendChild(optAgregar);
+
+                // Ejecutamos la validación un milisegundo después (requestAnimationFrame)
+                // para permitir que el modal termine de inyectar datos de edición sin pisarlos.
+                requestAnimationFrame(() => {
+                    _validarEstadoPiso();
+                });
+
                 sel.onchange = function () {
                     if (sel.value === '__agregar__') {
                         sel.value = seleccionado || '';
@@ -8558,6 +8652,9 @@
                     } else {
                         seleccionado = sel.value;
                     }
+                    
+                    // Validar al instante cuando el usuario cambia de opción
+                    _validarEstadoPiso(); 
                 };
             }
 
