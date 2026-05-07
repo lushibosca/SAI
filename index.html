@@ -52,6 +52,7 @@
             --radius-pill: 999px;
             --bg-toast: #1f2937;
             --hover: brightness(0.9);
+            --modal-max-w-sm: 360px;
         }
 
         body.dark-mode {
@@ -576,7 +577,7 @@
            LISTA DE DISPOSITIVOS  (mismo patrón que registro-item)
         ============================================================ */
         .dispositivo-item {
-            border: 1px solid var(--bg-card);
+            border: 1px solid var(--input-bg);
             border-radius: var(--radius);
             padding: 0.75rem;
             margin-bottom: 0.5rem;
@@ -586,6 +587,7 @@
             cursor: pointer;
             background: var(--input-bg);
             gap: 0.5rem;
+            box-shadow: var(--shadow);
         }
 
         .dispositivo-info {
@@ -825,7 +827,7 @@
         }
 
         .canal-slot-lista {
-            border: 1px solid var(--border);
+            border: 1px solid var(--input-bg);
             border-radius: var(--radius);
             padding: 0.5rem 0.65rem;
             background: var(--input-bg);
@@ -835,11 +837,13 @@
             align-items: center;
             cursor: pointer;
             transition: filter 0.15s;
+            box-shadow: var(--shadow);
         }
 
         .canal-slot-lista.vacio {
             border-style: dashed;
             background: var(--bg-card);
+            box-shadow: none;
         }
 
         .canal-slot-lista .canal-numero {
@@ -887,6 +891,7 @@
             cursor: pointer;
             transition: filter 0.15s;
             overflow: hidden;
+            box-shadow: var(--shadow);
         }
 
         .canal-slot.vacio {
@@ -1667,20 +1672,6 @@
             stroke: var(--c-white);
         }
 
-        /* ── Título autosync con tamaño reducido (modal-vista-activos) ── */
-        #modal-vista-activos .gist-autosync-title {
-            font-size: 0.88rem;
-        }
-
-        /* ── Margen superior del contenedor principal ── */
-        .container--main {
-            margin-top: 0.5rem;
-        }
-
-        :root {
-            --modal-max-w-sm: 360px;
-        }
-
         .section-label {
             font-size: 0.75rem;
             font-weight: 700;
@@ -1696,7 +1687,7 @@
         }
 
         .modal-sticky-header {
-            padding: 1.5rem 0.75rem 1rem;
+            padding: 1rem;
             margin: 0;
             position: sticky;
             top: 0;
@@ -1723,7 +1714,7 @@
         .modal-scroll-body {
             flex: 1;
             overflow-y: auto;
-            padding: 1rem 0.75rem;
+            padding: 0.75rem;
         }
 
         .input-flex-row {
@@ -1743,6 +1734,7 @@
         .btn-inline {
             margin-left: auto;
             width: auto !important;
+            box-shadow: var(--shadow);
         }
 
         .btn-inline+.btn-inline,
@@ -1767,23 +1759,15 @@
             margin-left: 0.25rem;
         }
 
-        .aviso-prod {
-            font-size: 0.8rem;
-            background: var(--input-bg);
-            border-radius: var(--radius-sm);
-            padding: 0.6rem 0.75rem;
-            margin-bottom: 0.75rem;
-            line-height: 1.45;
-        }
-
+        .aviso-prod,
         .gist-privacy-note {
-            font-size: 0.74rem;
+            font-size: 0.8rem;
             color: var(--text-muted);
             background: var(--input-bg);
             border-radius: var(--radius-sm);
             padding: 0.6rem 0.75rem;
-            margin-top: 0.75rem;
             line-height: 1.55;
+            margin-bottom: 0.5rem;
         }
 
         .gist-sync-row {
@@ -2279,7 +2263,8 @@
         .dash-cam-header {
             display: flex;
             align-items: center;
-            gap: 0.5rem; /* Igualamos la separación a la de las filas */
+            gap: 0.5rem;
+            /* Igualamos la separación a la de las filas */
             padding: 0.45rem 0;
         }
 
@@ -2389,7 +2374,8 @@
             width: 200%;
             transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
             will-change: transform;
-            align-items: flex-start; /* Evita estiramientos fantasmas */
+            align-items: flex-start;
+            /* Evita estiramientos fantasmas */
         }
 
         .dash-slide-wrap.en-detalle {
@@ -2406,7 +2392,8 @@
             display: grid;
             grid-template-columns: 220px 1fr;
             gap: 1.25rem;
-            align-items: stretch; /* CLAVE: Obliga a ambas columnas a tener la misma altura */
+            align-items: stretch;
+            /* CLAVE: Obliga a ambas columnas a tener la misma altura */
             width: 100%;
             padding: 2px;
             box-sizing: border-box;
@@ -2421,7 +2408,7 @@
 
         .dash-chip-main {
             background: var(--bg-card);
-            border: 1px solid var(--border);
+            border: 1px solid var(--bg-card);
             border-radius: var(--radius);
             padding: 1.5rem 1rem;
             display: flex;
@@ -2430,7 +2417,7 @@
             justify-content: center;
             text-align: center;
             box-shadow: var(--shadow);
-            flex: 1; /* CLAVE: Se estira hasta tocar el fondo de la grilla */
+            flex: 1;
             width: 100%;
             box-sizing: border-box;
             transition: transform 0.15s, box-shadow 0.15s, filter 0.15s;
@@ -2487,6 +2474,7 @@
             .dash-resumen-grid {
                 grid-template-columns: 1fr;
             }
+
             .dash-resumen-col-info {
                 border-right: none;
                 border-bottom: 1px solid var(--border);
@@ -2568,6 +2556,7 @@
                 grid-template-columns: 1fr;
                 gap: 0.75rem;
             }
+
             .dash-resumen-col-info {
                 border-right: none;
                 border-bottom: 1px solid var(--border);
@@ -2830,7 +2819,7 @@
     </header>
 
     <!-- ====== CONTENIDO ====== -->
-    <div class="container container--main">
+    <div class="container">
 
         <!-- TABS -->
         <div class="tabs">
@@ -3461,15 +3450,17 @@
                         <input type="text" id="nuevo-disp-serial" placeholder="Ej: DS2CD2143-20241001" maxlength="80">
                     </div>
                 </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Patrimonio</label>
+                        <input type="text" id="nuevo-disp-patrimonio" placeholder="Ej: PAT-00123" maxlength="60">
+                    </div>
 
-                <div class="form-group">
-                    <label>Patrimonio</label>
-                    <input type="text" id="nuevo-disp-patrimonio" placeholder="Ej: PAT-00123" maxlength="60">
-                </div>
-
-                <div class="form-group">
-                    <label>Firmware</label>
-                    <input type="text" id="nuevo-disp-firmware" placeholder="Ej: V5.7.15 build 230928" maxlength="80">
+                    <div class="form-group">
+                        <label>Firmware</label>
+                        <input type="text" id="nuevo-disp-firmware" placeholder="Ej: V5.7.15 build 230928"
+                            maxlength="80">
+                    </div>
                 </div>
             </div>
 
@@ -3556,15 +3547,17 @@
                         <input type="text" id="editar-disp-serial" placeholder="Ej: DS2CD2143-20241001" maxlength="80">
                     </div>
                 </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Patrimonio</label>
+                        <input type="text" id="editar-disp-patrimonio" placeholder="Ej: PAT-00123" maxlength="60">
+                    </div>
 
-                <div class="form-group">
-                    <label>Patrimonio</label>
-                    <input type="text" id="editar-disp-patrimonio" placeholder="Ej: PAT-00123" maxlength="60">
-                </div>
-
-                <div class="form-group">
-                    <label>Firmware</label>
-                    <input type="text" id="editar-disp-firmware" placeholder="Ej: V5.7.15 build 230928" maxlength="80">
+                    <div class="form-group">
+                        <label>Firmware</label>
+                        <input type="text" id="editar-disp-firmware" placeholder="Ej: V5.7.15 build 230928"
+                            maxlength="80">
+                    </div>
                 </div>
             </div>
 
@@ -5493,10 +5486,10 @@
                             const n = est[e.key];
                             // 2. MAGIA: Usamos event.stopPropagation() en todos los mosaicos. 
                             // Esto frena el clic ahí mismo, evitando que el "fondo" se entere de que tocaste.
-                            const clickable = n > 0 
-                                ? `class="stat-chip stat-chip-tipo" onclick="event.stopPropagation(); UI.irAActivosConFiltro('${_dashTipoAbierto}','${e.key}')"` 
+                            const clickable = n > 0
+                                ? `class="stat-chip stat-chip-tipo" onclick="event.stopPropagation(); UI.irAActivosConFiltro('${_dashTipoAbierto}','${e.key}')"`
                                 : `class="stat-chip" onclick="event.stopPropagation();"`;
-                                
+
                             return `
                             <div ${clickable}>
                                 <div class="stat-chip-valor stat-chip-val--${e.key}">${n}</div>
@@ -5549,7 +5542,7 @@
                     panelDer.innerHTML = panelDetalleHtml || '';
 
                     // 4. Forzamos al navegador a procesar el HTML (Reflow)
-                    void contenedor.offsetHeight; 
+                    void contenedor.offsetHeight;
 
                     // 5. Medimos exactamente cuánto ocupa el contenido al que vamos a saltar
                     const panelActivo = enDetalle ? panelDer : panelIzq;
@@ -5571,7 +5564,7 @@
                         requestAnimationFrame(() => {
                             contenedor.style.transition = 'height 0.35s cubic-bezier(0.4, 0, 0.2, 1)';
                             wrap.classList.toggle('en-detalle', enDetalle);
-                            
+
                             if (alturaObjetivo > 0) contenedor.style.height = alturaObjetivo + 'px';
 
                             // 7. Cuando termina la animación, soltamos el contenedor y "aplastamos" el panel invisible
@@ -5579,7 +5572,7 @@
                                 if (contenedor.style.height === alturaObjetivo + 'px') {
                                     contenedor.style.height = '';
                                     contenedor.style.transition = '';
-                                    
+
                                     if (enDetalle) {
                                         panelIzq.style.height = '0px';
                                         panelIzq.style.overflow = 'hidden';
@@ -6010,34 +6003,36 @@
 
                         const bloques = asigs.map(asig => {
                             if (asig.tipo === 'canal') {
-                                // Solo mostramos GRABADOR · CANAL N por bloque
+                                // Las cámaras muestran el NVR y Canal abajo, y la descripción en el badge
                                 return {
                                     linea: [esc(asig.grab.descripcion), `CANAL ${asig.slot.canal}`].join(' · '),
-                                    desc: asig.slot.descripcion || '',
+                                    desc: asig.slot.descripcion || 'EN PRODUCCIÓN',
                                     ip: asig.slot.ip || '',
                                 };
                             } else if (asig.tipo === 'otro_prod') {
+                                // Otros y Grabadores solo necesitan la descripción en el badge (y la IP si la hay)
                                 return {
-                                    linea: esc(asig.item.descripcion || 'Sin descripción'),
-                                    desc: 'otro_prod',
+                                    linea: '', 
+                                    desc: asig.item.descripcion || 'EN PRODUCCIÓN',
                                     ip: asig.item.ip || '',
                                 };
                             } else {
                                 return {
-                                    linea: esc(asig.grab.descripcion),
-                                    desc: 'grabador',
+                                    linea: '',
+                                    desc: asig.grab.descripcion || 'EN PRODUCCIÓN',
                                     ip: asig.grab.ip || '',
                                 };
                             }
                         });
 
                         if (bloques.length === 1) {
-                            // ── Una sola asignación: comportamiento original ──
+                            // ── Una sola asignación: comportamiento unificado ──
                             const b = bloques[0];
-                            const descHtml = (b.desc && b.desc !== 'otro_prod' && b.desc !== 'grabador')
+                            const descHtml = b.desc
                                 ? `<div class="text-truncate"><span class="badge ${badgeProdClass}" ${hoverTitle}>${esc(b.desc)}</span></div>` : '';
+                            const lineaHtml = b.linea ? `<div class="text-truncate">${b.linea}</div>` : '';
                             const ipHtml = b.ip ? `<div class="text-truncate">${esc(b.ip)}</div>` : '';
-                            asignInfo = `${descHtml}<div class="text-truncate">${b.linea}</div>${ipHtml}`;
+                            asignInfo = `${descHtml}${lineaHtml}${ipHtml}`;
                         } else {
                             // ── Múltiples asignaciones: detectar campos comunes ──
                             const allDesc = bloques.map(b => b.desc);
@@ -6045,20 +6040,25 @@
                             const descUnica = allDesc.every(v => v === allDesc[0]) ? allDesc[0] : null;
                             const ipUnica = allIp.every(v => v === allIp[0]) ? allIp[0] : null;
 
-                            // Badge de descripción: solo si es igual en todos (o canal sin desc no cuenta)
-                            const descComunHtml = (descUnica && descUnica !== '' && descUnica !== 'otro_prod' && descUnica !== 'grabador')
+                            // Badge de descripción
+                            const descComunHtml = (descUnica && descUnica !== '')
                                 ? `<div class="text-truncate"><span class="badge ${badgeProdClass}" ${hoverTitle}>${esc(descUnica)}</span></div>` : '';
                             const ipComunHtml = (ipUnica && ipUnica !== '')
                                 ? `<div class="text-truncate">${esc(ipUnica)}</div>` : '';
 
-                            // Cada bloque: solo línea GRABADOR · CANAL N
-                            // (campos únicos ya se muestran afuera; campos distintos se muestran por bloque)
+                            // Cada bloque (solo se renderiza si tiene línea o IP)
                             const bloquesHtml = bloques.map(b => {
                                 const ipBloque = (!ipUnica && b.ip) ? `<div class="text-truncate">${esc(b.ip)}</div>` : '';
-                                return `<div class="asig-bloque"><div class="text-truncate">${b.linea}</div>${ipBloque}</div>`;
-                            });
+                                const lineaBloque = b.linea ? `<div class="text-truncate">${b.linea}</div>` : '';
+                                if (!lineaBloque && !ipBloque) return ''; // Ignoramos bloques vacíos
+                                return `<div class="asig-bloque">${lineaBloque}${ipBloque}</div>`;
+                            }).filter(Boolean);
 
-                            asignInfo = `${descComunHtml}<div class="asig-multi">${bloquesHtml.join('<div class="asig-sep"></div>')}</div>${ipComunHtml}`;
+                            const asigMultiHtml = bloquesHtml.length > 0 
+                                ? `<div class="asig-multi">${bloquesHtml.join('<div class="asig-sep"></div>')}</div>` 
+                                : '';
+
+                            asignInfo = `${descComunHtml}${asigMultiHtml}${ipComunHtml}`;
                         }
                     }
 
