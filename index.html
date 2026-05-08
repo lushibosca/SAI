@@ -1671,6 +1671,73 @@
             margin-bottom: var(--sp-5);
         }
 
+        /* ── Modal ajustes: ancho fijo 450px ── */
+        #modal-ajustes .modal-content {
+            max-width: 450px;
+        }
+
+        /* ── Opciones del modal de reporte ── */
+        .reporte-opcion {
+            display: flex;
+            align-items: flex-start;
+            gap: var(--sp-3);
+            padding: var(--sp-3) var(--sp-4);
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: border-color 0.15s;
+        }
+
+        .reporte-opcion:hover {
+            border-color: var(--c-blue);
+        }
+
+        .reporte-opcion input[type="checkbox"] {
+            margin-top: 2px;
+            width: 1rem;
+            height: 1rem;
+            flex-shrink: 0;
+            accent-color: var(--c-blue);
+            cursor: pointer;
+        }
+
+        .reporte-opcion-texto {
+            display: flex;
+            flex-direction: column;
+            gap: var(--sp-1);
+        }
+
+        .reporte-opcion-titulo {
+            font-size: var(--fs-md);
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .reporte-opcion-desc {
+            font-size: var(--fs-sm);
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        /* ── Modal ajustes: botones del cuerpo en columna ── */
+        #modal-ajustes .modal-scroll-body .btn-group {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        #modal-ajustes .modal-scroll-body .btn-ajustes {
+            width: 100%;
+            justify-content: flex-start;
+        }
+
+        /* ── Chevron a la derecha en botones de ajustes ── */
+        #modal-ajustes .modal-scroll-body .btn-ajustes .btn-ajustes-chevron {
+            margin-left: auto;
+            color: var(--text-disabled);
+            flex-shrink: 0;
+        }
+
         .modal-sticky-header {
             padding: var(--sp-5);
             margin: 0;
@@ -1786,7 +1853,9 @@
         /* ── Contenedor altura mínima del dashboard de cámaras ── */
         .dash-camaras-container {
             overflow-y: auto;
+            overflow-x: hidden;
             max-height: 420px;
+            padding-right: var(--sp-4);
         }
 
         /* ── Texto de párrafo en modal filtros ── */
@@ -2339,12 +2408,15 @@
             cursor: pointer;
             border-bottom: 1px solid var(--border);
         }
+
         .dash-edif-row:last-child {
             border-bottom: none;
         }
+
         .dash-edif-row--open {
             border-bottom: none;
         }
+
         .dash-edif-label {
             flex: 1;
             font-size: var(--fs-md);
@@ -2354,25 +2426,31 @@
             align-items: center;
             gap: var(--sp-2);
         }
+
         .dash-edif-chevron {
-            width: 1em; height: 1em;
+            width: 1em;
+            height: 1em;
             stroke: var(--text-muted);
             stroke-width: 2.5;
             fill: none;
             flex-shrink: 0;
             transition: transform 0.2s ease;
         }
+
         .dash-edif-row--open .dash-edif-chevron {
             transform: rotate(90deg);
         }
+
         .dash-edif-pisos {
             overflow: hidden;
             max-height: 0;
             transition: max-height 0.22s ease;
         }
+
         .dash-edif-pisos--open {
             max-height: 2000px;
         }
+
         .dash-edif-piso-row {
             display: flex;
             align-items: center;
@@ -2380,9 +2458,11 @@
             padding: var(--sp-1) 0 var(--sp-1) var(--sp-5);
             border-bottom: 1px solid var(--border);
         }
+
         .dash-edif-piso-row:last-child {
             border-bottom: none;
         }
+
         .dash-edif-piso-label {
             font-size: var(--fs-sm);
             color: var(--text-muted);
@@ -2849,6 +2929,17 @@
         <symbol id="icon-chevron-down" viewBox="0 0 24 24">
             <polyline points="6 9 12 15 18 9" />
         </symbol>
+        <symbol id="icon-chevron-right" viewBox="0 0 24 24">
+            <polyline points="9 18 15 12 9 6" />
+        </symbol>
+        <symbol id="icon-report" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="16" y1="13" x2="8" y2="13" />
+            <line x1="16" y1="17" x2="8" y2="17" />
+            <polyline points="10 9 9 9 8 9" />
+        </symbol>
         <!-- Íconos de Gist -->
         <symbol id="icon-cloud-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
             stroke-linecap="round" stroke-linejoin="round">
@@ -3097,7 +3188,7 @@
                     </svg>
                     Ajustes
                 </h3>
-                <span class="modal-header-version">v288</span>
+                <span class="modal-header-version">v301</span>
             </div>
 
             <div class="modal-scroll-body">
@@ -3110,12 +3201,27 @@
                                 <use href="#icon-grid" />
                             </svg>
                             Dispositivos
+                            <svg class="icon icon-line btn-ajustes-chevron">
+                                <use href="#icon-chevron-right" />
+                            </svg>
                         </button>
                         <button onclick="UI.abrirEdificios()" class="btn-ajustes">
                             <svg class="icon icon-line">
                                 <use href="#icon-building" />
                             </svg>
                             Edificios
+                            <svg class="icon icon-line btn-ajustes-chevron">
+                                <use href="#icon-chevron-right" />
+                            </svg>
+                        </button>
+                        <button onclick="UI.abrirReporte()" class="btn-ajustes">
+                            <svg class="icon icon-line">
+                                <use href="#icon-report" />
+                            </svg>
+                            Reporte
+                            <svg class="icon icon-line btn-ajustes-chevron">
+                                <use href="#icon-chevron-right" />
+                            </svg>
                         </button>
                     </div>
                 </div>
@@ -3129,6 +3235,9 @@
                                 <use href="#icon-gist" />
                             </svg>
                             GitHub Gist
+                            <svg class="icon icon-line btn-ajustes-chevron">
+                                <use href="#icon-chevron-right" />
+                            </svg>
                         </button>
                         <button id="btn-ajustes-gist-subir" class="icon-btn btn-gist-action" onclick="GistSync.subir()"
                             title="Subir a Gist" style="display:none">
@@ -3154,12 +3263,18 @@
                                 <use href="#icon-upload" />
                             </svg>
                             Importar
+                            <svg class="icon icon-line btn-ajustes-chevron">
+                                <use href="#icon-chevron-right" />
+                            </svg>
                         </button>
                         <button onclick="UI.exportarJSON()" class="btn-ajustes">
                             <svg class="icon icon-line">
                                 <use href="#icon-download" />
                             </svg>
                             Exportar
+                            <svg class="icon icon-line btn-ajustes-chevron">
+                                <use href="#icon-chevron-right" />
+                            </svg>
                         </button>
                     </div>
                     <div class="btn-group">
@@ -3168,6 +3283,9 @@
                                 <use href="#icon-trash" />
                             </svg>
                             Restablecer
+                            <svg class="icon icon-line btn-ajustes-chevron">
+                                <use href="#icon-chevron-right" />
+                            </svg>
                         </button>
                     </div>
                 </div>
@@ -3183,6 +3301,106 @@
                         <svg class="icon icon-line" id="icono-tema">
                             <use href="#icon-moon" />
                         </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         MODAL — Reporte
+    ============================================================ -->
+    <div class="modal" id="modal-reporte">
+        <div class="modal-content modal-content--flex" style="max-width:480px">
+            <div class="modal-header modal-sticky-header">
+                <h3>
+                    <svg class="icon icon-line">
+                        <use href="#icon-report" />
+                    </svg>
+                    Generar Reporte
+                </h3>
+            </div>
+
+            <div class="modal-scroll-body">
+                <div class="section-label" style="margin-bottom:var(--sp-3)">Secciones a incluir</div>
+
+                <div style="display:flex;flex-direction:column;gap:var(--sp-3)">
+                    <label class="reporte-opcion">
+                        <input type="checkbox" id="rpt-activos-totales" checked>
+                        <span class="reporte-opcion-texto">
+                            <span class="reporte-opcion-titulo">Activos totales por tipo</span>
+                            <span class="reporte-opcion-desc">Resumen general de dispositivos agrupados por
+                                categoría</span>
+                        </span>
+                    </label>
+                    <label class="reporte-opcion">
+                        <input type="checkbox" id="rpt-edificios" checked>
+                        <span class="reporte-opcion-texto">
+                            <span class="reporte-opcion-titulo">Edificios con totales</span>
+                            <span class="reporte-opcion-desc">Lista de edificios y cantidad de dispositivos en cada
+                                uno</span>
+                        </span>
+                    </label>
+                    <label class="reporte-opcion">
+                        <input type="checkbox" id="rpt-formas" checked>
+                        <span class="reporte-opcion-texto">
+                            <span class="reporte-opcion-titulo">Cámaras por forma</span>
+                            <span class="reporte-opcion-desc">Distribución de cámaras según tipo de chasis (domo,
+                                bullet, turret…)</span>
+                        </span>
+                    </label>
+                    <label class="reporte-opcion">
+                        <input type="checkbox" id="rpt-cam-edificio" checked>
+                        <span class="reporte-opcion-texto">
+                            <span class="reporte-opcion-titulo">Cámaras por edificio y piso</span>
+                            <span class="reporte-opcion-desc">Desglose detallado de cámaras ubicadas en cada piso</span>
+                        </span>
+                    </label>
+                    <label class="reporte-opcion">
+                        <input type="checkbox" id="rpt-modelos" checked>
+                        <span class="reporte-opcion-texto">
+                            <span class="reporte-opcion-titulo">Cantidad por modelo</span>
+                            <span class="reporte-opcion-desc">Ranking de modelos más utilizados en el inventario</span>
+                        </span>
+                    </label>
+                    <label class="reporte-opcion">
+                        <input type="checkbox" id="rpt-estados" checked>
+                        <span class="reporte-opcion-texto">
+                            <span class="reporte-opcion-titulo">Estado de dispositivos</span>
+                            <span class="reporte-opcion-desc">Activos operativos, averiados, en revisión y
+                                desafectados</span>
+                        </span>
+                    </label>
+                    <label class="reporte-opcion">
+                        <input type="checkbox" id="rpt-marcas">
+                        <span class="reporte-opcion-texto">
+                            <span class="reporte-opcion-titulo">Distribución por marca</span>
+                            <span class="reporte-opcion-desc">Cantidad de dispositivos por fabricante</span>
+                        </span>
+                    </label>
+                    <label class="reporte-opcion">
+                        <input type="checkbox" id="rpt-grabadores">
+                        <span class="reporte-opcion-texto">
+                            <span class="reporte-opcion-titulo">Lista de grabadores</span>
+                            <span class="reporte-opcion-desc">NVR/DVR con capacidad de canales y ubicación</span>
+                        </span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="modal-sticky-footer">
+                <div class="btn-group btn-group--no-mt">
+                    <button class="btn-cancel" onclick="UI.cerrarReporte()">
+                        <svg class="icon icon-line">
+                            <use href="#icon-undo" />
+                        </svg>
+                        Volver
+                    </button>
+                    <button class="btn-edit" onclick="UI.generarReporte()" style="flex:1;justify-content:center">
+                        <svg class="icon icon-line">
+                            <use href="#icon-report" />
+                        </svg>
+                        Generar
                     </button>
                 </div>
             </div>
@@ -3992,7 +4210,7 @@
                         </svg> Combinar
                     </button>
                 </div>
-                <button class="btn-cancel" onclick="UI.cerrarImportar()">
+                <button class="btn-cancel" onclick="UI.cerrarImportar(); setTimeout(() => UI.abrirAjustes(), 150)">
                     <svg class="icon icon-line">
                         <use href="#icon-undo" />
                     </svg> Volver
@@ -5388,7 +5606,7 @@
             let _dashTipoAbiertoPrevio = null;
             let _dashEstadoAbierto = null;
             let _dashEstadoAbiertoPrevio = null;
-            let _dashCamarasVista = 'forma';
+            let _dashCamarasVista = 'edificio';
 
             // ── NUEVO: Función para cambiar la vista de cámaras sin redibujar el resto ──
             window._setCamarasVista = function (vista) {
@@ -6003,7 +6221,7 @@
                         const chevron = `<svg class="dash-edif-chevron" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>`;
 
                         // Funciones de accordion — un edificio abierto a la vez, un piso abierto a la vez
-                        window._toggleEdificio = function(rowEl) {
+                        window._toggleEdificio = function (rowEl) {
                             const container = document.getElementById('dash-camaras');
                             const wrapper = rowEl.parentNode;
                             const pisos = wrapper.querySelector('.dash-edif-pisos');
@@ -6045,7 +6263,7 @@
                             }).join('');
                             return `
                             <div>
-                                <div class="dash-edif-row anim-in" style="animation-delay:${i*0.03}s;animation-fill-mode:both"
+                                <div class="dash-edif-row anim-in" style="animation-delay:${i * 0.03}s;animation-fill-mode:both"
                                     onclick="window._toggleEdificio(this)">
                                     <span class="dash-edif-label">${chevron}${esc(f.label)}</span>
                                     <span class="dash-cam-val" style="color:var(--text-main)">${f.total}</span>
@@ -6599,7 +6817,7 @@
                 { id: 'forma', label: 'Forma (cámara)' },
                 { id: 'canal', label: 'Descripción' },
                 { id: 'estado', label: 'Estado' },
-                { id: 'ubicacion', label: 'Ubicación (Edificio / Piso)' },
+                { id: 'ubicacion', label: 'Ubicación' },
             ];
             const KEY_BUSQ = 'cctv_busq_activos';
 
@@ -6724,8 +6942,8 @@
             }
 
             function _forzarFiltros(...ids) {
-                if (ids.every(id => _busqActivos.has(id))) return;
                 if (!window.UI._filtrosPrevios) window.UI._filtrosPrevios = new Set(_busqActivos);
+                _busqActivos.clear();
                 ids.forEach(id => _busqActivos.add(id));
                 _guardarBusqActivos();
                 _sincFiltrosUI();
@@ -6951,6 +7169,242 @@
                 cerrarAjustes() {
                     MM.cerrar('modal-ajustes');
                 },
+
+                abrirReporte() {
+                    MM.cerrar('modal-ajustes');
+                    setTimeout(() => {
+                        MM.abrir('modal-reporte', { onEscape: () => UI.cerrarReporte() });
+                    }, 150);
+                },
+
+                cerrarReporte() {
+                    MM.cerrar('modal-reporte');
+                    setTimeout(() => UI.abrirAjustes(), 150);
+                },
+
+                generarReporte() {
+                    const disps = _data.dispositivos.map(_sanDisp).filter(Boolean);
+                    const grabs = _data.grabadores.map(_sanGrab).filter(Boolean);
+                    const edifs = S.edificios;
+                    const TIPOS = S.TIPOS;
+                    const FORMAS = ['domo', 'bullet', 'turret', 'minidomo', 'minibullet', 'domo-ptz'];
+                    const ESTADOS_LABELS = { '': 'Operativo', averiado: 'Averiado', revisar: 'En revisión', desafectado: 'Desafectado' };
+
+                    // ── Construir mapa de asignaciones (igual que _buildAsignaciones) ──
+                    const asignaciones = {};
+                    const pushAsig = (id, asig) => { (asignaciones[id] || (asignaciones[id] = [])).push(asig); };
+                    _data.grabadores.forEach(g => {
+                        if (g.dispositivoId) pushAsig(g.dispositivoId, { tipo: 'grabador', grab: g });
+                        (g.canales_data || []).forEach(c => { if (c.dispositivoId) pushAsig(c.dispositivoId, { tipo: 'canal', grab: g, slot: c }); });
+                    });
+                    (_data.otros_prod || []).forEach(o => { if (o.dispositivoId) pushAsig(o.dispositivoId, { tipo: 'otro_prod', item: o }); });
+
+                    // ── Set de IDs en producción ──
+                    const idsEnProd = new Set([
+                        ..._data.grabadores.flatMap(g => (g.canales_data || []).filter(c => c.dispositivoId).map(c => c.dispositivoId)),
+                        ..._data.grabadores.filter(g => g.dispositivoId).map(g => g.dispositivoId),
+                        ...(_data.otros_prod || []).filter(o => o.dispositivoId).map(o => o.dispositivoId)
+                    ]);
+
+                    // ── Helper: obtener edificio y piso de un dispositivo vía asignación ──
+                    function getUbicacion(d) {
+                        const asig = (asignaciones[d.id] || [])[0];
+                        if (!asig) return { edificio: '', piso: '' };
+                        if (asig.tipo === 'canal') return { edificio: asig.slot.edificio || '', piso: asig.slot.piso || '' };
+                        if (asig.tipo === 'otro_prod') return { edificio: asig.item.edificio || '', piso: asig.item.piso || '' };
+                        if (asig.tipo === 'grabador') return { edificio: asig.grab.edificio || '', piso: asig.grab.piso || '' };
+                        return { edificio: '', piso: '' };
+                    }
+
+                    const sel = id => document.getElementById(id)?.checked;
+                    const esc = s => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+
+                    const fecha = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
+                    const secciones = [];
+
+                    // ── 1. Activos totales por tipo ──────────────────────────────
+                    if (sel('rpt-activos-totales')) {
+                        const rows = Object.entries(TIPOS).map(([k, v]) => {
+                            const n = disps.filter(d => d.tipo === k).length;
+                            return n > 0 ? `<tr><td>${esc(v.emoji)} ${esc(v.label)}</td><td class="num">${n}</td></tr>` : '';
+                        }).join('');
+                        secciones.push(`<section><h2>Activos totales por tipo</h2><table><thead><tr><th>Tipo</th><th class="num">Cantidad</th></tr></thead><tbody>${rows || '<tr><td colspan="2" class="vacio">Sin dispositivos</td></tr>'}</tbody><tfoot><tr><td><strong>Total</strong></td><td class="num"><strong>${disps.length}</strong></td></tr></tfoot></table></section>`);
+                    }
+
+                    // ── 2. Edificios con totales ─────────────────────────────────
+                    if (sel('rpt-edificios')) {
+                        const rows = edifs.map(e => {
+                            const n = disps.filter(d => (getUbicacion(d).edificio || '').trim().toLowerCase() === e.toLowerCase()).length;
+                            return `<tr><td>${esc(e)}</td><td class="num">${n}</td></tr>`;
+                        }).join('');
+                        const sinEdif = disps.filter(d => !getUbicacion(d).edificio?.trim()).length;
+                        const sinRow = sinEdif > 0 ? `<tr><td class="muted">Sin edificio asignado</td><td class="num muted">${sinEdif}</td></tr>` : '';
+                        secciones.push(`<section><h2>Edificios con totales</h2><table><thead><tr><th>Edificio</th><th class="num">Dispositivos</th></tr></thead><tbody>${rows || ''}${sinRow || (!rows ? '<tr><td colspan="2" class="vacio">Sin edificios definidos</td></tr>' : '')}</tbody></table></section>`);
+                    }
+
+                    // ── 3. Cámaras por forma ─────────────────────────────────────
+                    if (sel('rpt-formas')) {
+                        const camaras = disps.filter(d => d.tipo === 'camara');
+                        const conteo = {};
+                        camaras.forEach(c => {
+                            const k = c.forma || '__sin__';
+                            if (!conteo[k]) conteo[k] = { produccion: 0, disponible: 0, averiado: 0, revisar: 0, desafectado: 0 };
+                            if (c.estado === 'averiado') conteo[k].averiado++;
+                            else if (c.estado === 'revisar') conteo[k].revisar++;
+                            else if (c.estado === 'desafectado') conteo[k].desafectado++;
+                            else if (idsEnProd.has(c.id)) conteo[k].produccion++;
+                            else conteo[k].disponible++;
+                        });
+                        const formasOrden = [...FORMAS.filter(f => conteo[f]), ...(conteo['__sin__'] ? ['__sin__'] : [])];
+                        const rows = formasOrden.map(f => {
+                            const s = conteo[f];
+                            const total = s.produccion + s.disponible + s.averiado + s.revisar + s.desafectado;
+                            const label = f === '__sin__' ? '<span class="muted">Sin forma</span>' : esc(cap(f.replace(/-/g, ' ')));
+                            return `<tr><td>${label}</td><td class="num">${s.produccion || '—'}</td><td class="num">${s.disponible || '—'}</td><td class="num">${s.averiado || '—'}</td><td class="num">${s.revisar || '—'}</td><td class="num">${s.desafectado || '—'}</td><td class="num"><strong>${total}</strong></td></tr>`;
+                        }).join('');
+                        secciones.push(`<section><h2>Cámaras por forma</h2><table><thead><tr><th>Forma</th><th class="num">Prod.</th><th class="num">Disp.</th><th class="num">Aver.</th><th class="num">Revis.</th><th class="num">Desaf.</th><th class="num">Total</th></tr></thead><tbody>${rows || '<tr><td colspan="7" class="vacio">Sin cámaras registradas</td></tr>'}</tbody><tfoot><tr><td><strong>Total</strong></td><td colspan="5"></td><td class="num"><strong>${camaras.length}</strong></td></tr></tfoot></table></section>`);
+                    }
+
+                    // ── 4. Cámaras por edificio y piso ──────────────────────────
+                    if (sel('rpt-cam-edificio')) {
+                        const camaras = disps.filter(d => d.tipo === 'camara');
+                        const mapa = {};
+                        camaras.forEach(c => {
+                            const ub = getUbicacion(c);
+                            const e = ub.edificio.trim() || '__sin_edif__';
+                            const p = S.normalizarPiso(ub.piso) || '__sin_piso__';
+                            if (!mapa[e]) mapa[e] = {};
+                            mapa[e][p] = (mapa[e][p] || 0) + 1;
+                        });
+                        let html = '';
+                        const edificioKeys = [...Object.keys(mapa)].sort((a, b) => a === '__sin_edif__' ? 1 : b === '__sin_edif__' ? -1 : a.localeCompare(b));
+                        const getPisoPeso = p => {
+                            if (!p || p === '__sin_piso__') return 9999;
+                            const s = p.trim().toUpperCase();
+                            if (s.includes('SS')) return -(parseInt(s.replace(/\D/g, '')) || 1);
+                            if (s === 'PB') return 0;
+                            if (s.includes('EP')) return (parseInt(s.replace(/\D/g, '')) || 1) * 0.1;
+                            if (s === 'TERRAZA' || s === 'AZOTEA' || s === 'TZ') return 1000;
+                            const n = parseInt(s);
+                            return isNaN(n) ? 500 : n;
+                        };
+                        edificioKeys.forEach(e => {
+                            const label = e === '__sin_edif__' ? 'Sin edificio' : esc(e);
+                            const total = Object.values(mapa[e]).reduce((s, n) => s + n, 0);
+                            const pisoRows = Object.entries(mapa[e])
+                                .sort(([a], [b]) => getPisoPeso(a) - getPisoPeso(b))
+                                .map(([p, n]) => {
+                                    const pl = p === '__sin_piso__' ? '<span class="muted">Sin piso</span>' : esc(p);
+                                    return `<tr class="piso-row"><td>&nbsp;&nbsp;&nbsp;${pl}</td><td class="num">${n}</td></tr>`;
+                                }).join('');
+                            html += `<tr class="edif-row"><td><strong>${label}</strong></td><td class="num"><strong>${total}</strong></td></tr>${pisoRows}`;
+                        });
+                        secciones.push(`<section><h2>Cámaras por edificio y piso</h2><table><thead><tr><th>Ubicación</th><th class="num">Cámaras</th></tr></thead><tbody>${html || '<tr><td colspan="2" class="vacio">Sin cámaras con ubicación</td></tr>'}</tbody></table></section>`);
+                    }
+
+                    // ── 5. Cantidad por modelo ───────────────────────────────────
+                    if (sel('rpt-modelos')) {
+                        const conteo = {};
+                        disps.forEach(d => { if (d.modelo) { conteo[d.modelo] = (conteo[d.modelo] || 0) + 1; } });
+                        const rows = Object.entries(conteo).sort(([, a], [, b]) => b - a).map(([m, n]) => `<tr><td>${esc(m)}</td><td class="num">${n}</td></tr>`).join('');
+                        secciones.push(`<section><h2>Cantidad por modelo</h2><table><thead><tr><th>Modelo</th><th class="num">Cantidad</th></tr></thead><tbody>${rows || '<tr><td colspan="2" class="vacio">Sin modelos registrados</td></tr>'}</tbody></table></section>`);
+                    }
+
+                    // ── 6. Estado de dispositivos ────────────────────────────────
+                    if (sel('rpt-estados')) {
+                        const conteo = { produccion: 0, disponible: 0, averiado: 0, revisar: 0, desafectado: 0 };
+                        disps.forEach(d => {
+                            if (d.estado === 'averiado') conteo.averiado++;
+                            else if (d.estado === 'revisar') conteo.revisar++;
+                            else if (d.estado === 'desafectado') conteo.desafectado++;
+                            else if (idsEnProd.has(d.id)) conteo.produccion++;
+                            else conteo.disponible++;
+                        });
+                        const labels = { produccion: 'En producción', disponible: 'Disponible', averiado: 'Averiado', revisar: 'En revisión', desafectado: 'Desafectado' };
+                        const rows = Object.entries(labels).map(([k, label]) => `<tr><td>${esc(label)}</td><td class="num">${conteo[k] || 0}</td></tr>`).join('');
+                        secciones.push(`<section><h2>Estado de dispositivos</h2><table><thead><tr><th>Estado</th><th class="num">Cantidad</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td><strong>Total</strong></td><td class="num"><strong>${disps.length}</strong></td></tr></tfoot></table></section>`);
+                    }
+
+                    // ── 7. Distribución por marca ────────────────────────────────
+                    if (sel('rpt-marcas')) {
+                        const conteo = {};
+                        disps.forEach(d => { const m = (d.marca || '').trim() || '__sin__'; conteo[m] = (conteo[m] || 0) + 1; });
+                        const rows = Object.entries(conteo).sort(([, a], [, b]) => b - a).map(([m, n]) => {
+                            const label = m === '__sin__' ? '<span class="muted">Sin marca</span>' : esc(m);
+                            return `<tr><td>${label}</td><td class="num">${n}</td></tr>`;
+                        }).join('');
+                        secciones.push(`<section><h2>Distribución por marca</h2><table><thead><tr><th>Marca</th><th class="num">Cantidad</th></tr></thead><tbody>${rows || '<tr><td colspan="2" class="vacio">Sin marcas registradas</td></tr>'}</tbody></table></section>`);
+                    }
+
+                    // ── 8. Lista de grabadores ───────────────────────────────────
+                    if (sel('rpt-grabadores')) {
+                        const rows = grabs.map(g => {
+                            const ocupados = (g.canales_data || []).filter(c => c.dispositivoId).length;
+                            const libres = (g.canales_n || 0) - ocupados;
+                            const ub = [g.edificio, g.piso].filter(Boolean).join(' · ') || '—';
+                            return `<tr><td>${esc(g.descripcion || 'Sin descripción')}</td><td class="center">${esc(g.tipo?.toUpperCase())}</td><td class="num">${g.canales_n || '?'}</td><td class="num">${ocupados}</td><td class="num">${libres}</td><td>${esc(ub)}</td></tr>`;
+                        }).join('');
+                        secciones.push(`<section><h2>Lista de grabadores</h2><table><thead><tr><th rowspan="2">Descripción</th><th rowspan="2" class="center">Tipo</th><th colspan="3" class="center th-group">Canales</th><th rowspan="2">Ubicación</th></tr><tr><th class="num th-sub">Total</th><th class="num th-sub">En uso</th><th class="num th-sub">Libres</th></tr></thead><tbody>${rows || '<tr><td colspan="6" class="vacio">Sin grabadores registrados</td></tr>'}</tbody></table></section>`);
+                    }
+
+                    if (!secciones.length) { toast('Seleccioná al menos una sección', 'info'); return; }
+
+                    const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reporte CCTV — ${fecha}</title>
+<style>
+  :root { --blue: #4c72ac; --border: #dde3ea; --muted: #6b7280; --bg: #f5f6fa; --card: #fff; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: #1a1d23; padding: 2rem 1rem 4rem; }
+  .reporte-wrap { max-width: 860px; margin: 0 auto; }
+  header { margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 2px solid var(--blue); display: flex; justify-content: space-between; align-items: flex-end; }
+  header h1 { font-size: 1.4rem; color: var(--blue); }
+  header .meta { font-size: 0.78rem; color: var(--muted); text-align: right; line-height: 1.6; }
+  section { background: var(--card); border-radius: 12px; padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; box-shadow: 0 1px 4px rgba(0,0,0,.07); }
+  h2 { font-size: 0.95rem; font-weight: 700; color: var(--blue); margin-bottom: 0.85rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  th { text-align: left; font-weight: 600; color: var(--muted); padding: 0.3rem 0.5rem; border-bottom: 1px solid var(--border); font-size: 0.75rem; text-transform: uppercase; letter-spacing: .04em; }
+  td { padding: 0.45rem 0.5rem; border-bottom: 1px solid var(--border); }
+  tbody tr:last-child td { border-bottom: none; }
+  tfoot td { border-top: 1px solid var(--border); padding-top: 0.5rem; }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .center { text-align: center; }
+  .muted { color: var(--muted); font-style: italic; }
+  .vacio { color: var(--muted); text-align: center; padding: 1rem; font-style: italic; }
+  .edif-row td { background: #f0f4fb; }
+  .piso-row td { font-size: 0.8rem; color: #374151; }
+  .th-group { border-bottom: 1px solid var(--border); background: #f0f4fb; font-size: 0.72rem; }
+  .th-sub { border-top: none; font-size: 0.72rem; }
+  .btn-print { position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--blue); color: #fff; border: none; border-radius: 999px; padding: .65rem 1.25rem; font-size: .85rem; font-weight: 600; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.2); }
+  .btn-print:hover { filter: brightness(1.1); }
+  @media print { .btn-print { display: none; } body { background: #fff; } section { box-shadow: none; border: 1px solid var(--border); } }
+</style>
+</head>
+<body>
+<div class="reporte-wrap">
+  <header>
+    <div><h1>📹 Reporte CCTV</h1></div>
+    <div class="meta">Generado el ${fecha}<br>${disps.length} dispositivos · ${grabs.length} grabadores · ${edifs.length} edificios</div>
+  </header>
+  ${secciones.join('\n')}
+</div>
+<button class="btn-print" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>
+</body>
+</html>`;
+
+                    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+                    const url = URL.createObjectURL(blob);
+                    window.open(url, '_blank');
+                    setTimeout(() => URL.revokeObjectURL(url), 60000);
+                    MM.cerrar('modal-reporte');
+                    toast('Reporte generado', 'success');
+                },
+
+
 
                 abrirTiposDispositivo() {
                     MM.cerrar('modal-ajustes');
@@ -9315,7 +9769,7 @@
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 297
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 301
     // ====================================================================
 
      - CAMBIOS 
