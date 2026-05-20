@@ -1582,7 +1582,7 @@ button:disabled {
 
 .dashboard-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
     gap: var(--sp-4);
     margin-bottom: var(--sp-5);
 }
@@ -2600,6 +2600,10 @@ button:disabled {
         padding-right: 0;
         padding-bottom: var(--sp-5);
         height: auto;
+    }
+
+    .dashboard-grid {
+        grid-template-columns: 1fr 1fr;
     }
 }
 
