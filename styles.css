@@ -73,6 +73,7 @@ html.dark-mode {
 body[data-tab-inicial] {
     transition: none !important;
 }
+
 body[data-tab-inicial] * {
     transition: none !important;
 }
@@ -641,6 +642,19 @@ button:disabled {
     min-width: 9rem;
     flex-shrink: 0;
     margin-left: var(--sp-4);
+}
+
+.btn-text-action {
+    color: var(--text-muted);
+    cursor: pointer;
+    text-transform: none;
+    font-weight: 600;
+    font-size: 0.85em;
+    transition: opacity 0.2s ease;
+}
+
+.btn-text-action:hover {
+    opacity: 0.7;
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -1742,11 +1756,25 @@ button:disabled {
     margin-bottom: var(--sp-3);
 }
 
-.stat-chip-val--produccion { color: var(--c-blue); }
-.stat-chip-val--disponible { color: var(--c-green); }
-.stat-chip-val--averiado   { color: var(--c-red); }
-.stat-chip-val--revisar    { color: var(--c-purple); }
-.stat-chip-val--desafectado { color: var(--text-muted); }
+.stat-chip-val--produccion {
+    color: var(--c-blue);
+}
+
+.stat-chip-val--disponible {
+    color: var(--c-green);
+}
+
+.stat-chip-val--averiado {
+    color: var(--c-red);
+}
+
+.stat-chip-val--revisar {
+    color: var(--c-purple);
+}
+
+.stat-chip-val--desafectado {
+    color: var(--text-muted);
+}
 
 .dash-chip-main .stat-chip-label {
     font-size: var(--fs-md);
@@ -2056,18 +2084,7 @@ button:disabled {
     padding: 0;
 }
 
-#modal-filtros-busqueda
-
-#modal-filtros-busqueda
-
-#modal-filtros-busqueda
-
-#modal-filtros-busqueda
-
-#modal-filtros-busqueda
-
-#modal-filtros-busqueda
-
+#modal-filtros-busqueda #modal-filtros-busqueda #modal-filtros-busqueda #modal-filtros-busqueda #modal-filtros-busqueda #modal-filtros-busqueda
 /* ═══════════════════════════════════════════════════════
    NUEVO DROPDOWN DE FILTROS DE BÚSQUEDA
 ═══════════════════════════════════════════════════════ */
@@ -2156,7 +2173,9 @@ button:disabled {
 .canal-slot-lista.ocupado .canal-numero,
 .toggle-switch.on {
     background: var(--c-blue);
-}/* ═══════════════════════════════════════════════════════
+}
+
+/* ═══════════════════════════════════════════════════════
    AJUSTES / GIST SYNC
 ═══════════════════════════════════════════════════════ */
 
@@ -2994,4 +3013,3 @@ button:disabled {
 }
 
 /* Chips de piso (nivel 4) */
-

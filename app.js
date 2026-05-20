@@ -41,7 +41,7 @@
         try {
             const t = localStorage.getItem('cctvs:cctv_tema');
             if (t === 'true' || t === null) document.documentElement.classList.add('dark-mode');
-            document.body.classList.remove('dark-mode'); 
+            document.body.classList.remove('dark-mode');
             const saved = JSON.parse(localStorage.getItem('cctvs:cctv_tab') || 'null');
             const tab = (saved && saved.tab && (Date.now() - saved.ts) < 3600000) ? saved.tab : 'dashboard';
             document.body.setAttribute('data-tab-inicial', tab);
@@ -1274,7 +1274,7 @@
             _actualizarBotonesAjustes();
         }
 
-       async function verificarAlAbrir() {
+        async function verificarAlAbrir() {
             if (!_cfg.auto || !_cfg.gistId) return;
             await new Promise(resolve => setTimeout(resolve, DEBOUNCE_MS));
             _spinStart();
@@ -2568,11 +2568,21 @@
         }
 
         const listaOtros = document.getElementById('lista-otros-prod');
-        const otros = _data.otros_prod || [];
+
+        // Clonamos y ordenamos alfabéticamente la lista de otros dispositivos
+        const otros = [...(_data.otros_prod || [])].sort((a, b) => {
+            const dispA = a.dispositivoId ? _data.dispositivos.find(d => d.id === a.dispositivoId) : null;
+            const descA = a.descripcion || (dispA ? (dispA.mac || dispA.serial || 'zzz') : 'zzz');
+
+            const dispB = b.dispositivoId ? _data.dispositivos.find(d => d.id === b.dispositivoId) : null;
+            const descB = b.descripcion || (dispB ? (dispB.mac || dispB.serial || 'zzz') : 'zzz');
+
+            return descA.localeCompare(descB, undefined, { numeric: true, sensitivity: 'base' });
+        });
         if (otros.length === 0) {
             listaOtros.innerHTML = `<div class="dash-empty-text dash-empty-text--center">Sin otros dispositivos en producción</div>`;
         } else {
-            listaOtros.innerHTML = otros.map(o => {
+            const itemsHtml = otros.map(o => {
                 const disp = o.dispositivoId ? _data.dispositivos.find(d => d.id === o.dispositivoId) : null;
                 const tc = disp ? (S.TIPOS[disp.tipo] || { emoji: '📦' }) : { emoji: '❓' };
                 const desc = o.descripcion || (disp ? (disp.mac || disp.serial || 'Sin descripción') : 'Sin dispositivo asignado');
@@ -2587,16 +2597,18 @@
                                 </div>
                             </div>
                             <div class="activo-info-derecha">
-                                ${p ? `<div class="text-truncate nvr-card-ip">${esc(p)}</div>` : ''}
+                                ${p ? `<div class="text-truncate nvr-card-ip ip-copiable" data-copy="${esc(p)}" title="Copiar IP">${esc(p)}</div>` : ''}
                                 ${o.edificio ? `<div class="text-truncate">${esc(o.edificio)}${o.piso ? ` (Píso ${esc(o.piso)})` : ''}</div>` : ''}
                             </div>
                         </div>`;
             }).join('');
+            listaOtros.innerHTML = `<div class="lista-2col">${itemsHtml}</div>`;
         }
 
         if (!listaOtros._delegRegistrada) {
             listaOtros._delegRegistrada = true;
             listaOtros.addEventListener('click', function (e) {
+                if (e.target.closest('[data-copy]')) return;
                 const item = e.target.closest('.dispositivo-item[data-otro-id]');
                 if (item) { UI.abrirEditarOtroProd(item.dataset.otroId); }
             });
@@ -5108,6 +5120,9 @@
 
             _edicion.gruposReporteTmp = grupos; // Almacenamiento temporal en el estado
             MM.abrir('modal-reporte-agrupamiento');
+            // Reseteamos el texto del botón porque la lista arranca toda marcada
+            const btnToggle = document.getElementById('btn-toggle-chk-reporte');
+            if (btnToggle) btnToggle.textContent = 'Deseleccionar todo';
         },
 
         descargarReporteAgrupamiento() {
@@ -5162,7 +5177,7 @@
 
             // ─── 2. GENERAR EL DETALLE POR BLOQUES ───
             let htmlSecciones = '';
-            
+
             seleccionados.forEach(gLabel => {
                 const items = grupos[gLabel] || [];
 
@@ -5240,6 +5255,30 @@
             MM.cerrar('modal-reporte-agrupamiento');
             _edicion.gruposReporteTmp = null;
             toast('Sumario descargado correctamente', 'success');
+        },
+
+        toggleCheckboxesReporte() {
+            const checkboxes = document.querySelectorAll('.chk-grupo-rpt');
+            if (checkboxes.length === 0) return;
+
+            // Verificamos si TODAS están marcadas actualmente
+            const todasSeleccionadas = Array.from(checkboxes).every(chk => chk.checked);
+            const nuevoEstado = !todasSeleccionadas; // Si están todas, desmarcamos. Si falta alguna, marcamos todas.
+
+            checkboxes.forEach(chk => chk.checked = nuevoEstado);
+
+            const btn = document.getElementById('btn-toggle-chk-reporte');
+            if (btn) btn.textContent = nuevoEstado ? 'Deseleccionar todo' : 'Seleccionar todo';
+        },
+
+        actualizarBtnToggleReporte() {
+            const checkboxes = document.querySelectorAll('.chk-grupo-rpt');
+            const btn = document.getElementById('btn-toggle-chk-reporte');
+            if (!btn || checkboxes.length === 0) return;
+
+            // Si el usuario marca/desmarca manualmente, actualizamos el texto del botón
+            const todasSeleccionadas = Array.from(checkboxes).every(chk => chk.checked);
+            btn.textContent = todasSeleccionadas ? 'Deseleccionar todo' : 'Seleccionar todo';
         },
     };
 
@@ -5759,6 +5798,18 @@
         on('btn-generar-reporte-agrupamiento', 'click', () => UI.descargarReporteAgrupamiento());
         document.querySelector('#modal-reporte-agrupamiento .btn-cancel')
             ?.addEventListener('click', () => MM.cerrar('modal-reporte-agrupamiento'));
+
+        // Sumario por Agrupamiento Actual
+        on('btn-reporte-agrupamiento', 'click', () => UI.abrirReporteAgrupamiento());
+        on('btn-generar-reporte-agrupamiento', 'click', () => UI.descargarReporteAgrupamiento());
+        document.querySelector('#modal-reporte-agrupamiento .btn-cancel')
+            ?.addEventListener('click', () => MM.cerrar('modal-reporte-agrupamiento'));
+
+        // NUEVAS LÍNEAS:
+        on('btn-toggle-chk-reporte', 'click', () => UI.toggleCheckboxesReporte());
+        on('reporte-agrupamiento-lista', 'change', (e) => {
+            if (e.target.classList.contains('chk-grupo-rpt')) UI.actualizarBtnToggleReporte();
+        });
 
         // Mini-tabs cámaras dashboard
         document.querySelectorAll('.mini-tab-btn[data-target]').forEach(btn => {
