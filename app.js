@@ -5032,7 +5032,7 @@
             const listaContenedor = document.getElementById('reporte-agrupamiento-lista');
             if (!listaContenedor) return;
 
-            const grupoKeys = Object.keys(grupos);
+            const grupoKeys = Object.keys(grupos).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
             if (grupoKeys.length === 0) {
                 toast('No hay grupos visualizados para exportar', 'info');
                 return;
@@ -5069,8 +5069,42 @@
 
             const asignaciones = _buildAsignaciones();
             const fecha = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
-            let htmlSecciones = '';
+            
+            // ─── 1. GENERAR EL RESUMEN GENERAL ───
+            let totalDispositivos = 0;
+            const filasResumen = seleccionados.map(gLabel => {
+                const cantidad = (grupos[gLabel] || []).length;
+                totalDispositivos += cantidad;
+                return `<tr>
+                    <td><strong>${esc(gLabel)}</strong></td>
+                    <td>${cantidad}</td>
+                </tr>`;
+            }).join('');
 
+            const htmlResumen = `
+            <section>
+                <h2>Resumen de Agrupamiento</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Grupo (${esc(_activos.orden).toUpperCase()})</th>
+                            <th>Cantidad</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${filasResumen}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td><strong>TOTAL DE DISPOSITIVOS</strong></td>
+                            <td><strong>${totalDispositivos}</strong></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </section>`;
+
+            // ─── 2. GENERAR EL DETALLE POR BLOQUES ───
+            let htmlSecciones = '';
             seleccionados.forEach(gLabel => {
                 const items = grupos[gLabel] || [];
                 const rowsHtml = items.map(d => {
@@ -5078,7 +5112,6 @@
                     const serial = d.serial || '—';
                     const tipoForma = d.tipo === 'camara' && d.forma ? d.forma.replace(/-/g, ' ') : (S.TIPOS[d.tipo]?.label || d.tipo);
 
-                    // Condición solicitada de Patrimonio
                     const patRaw = (d.patrimonio || '').trim().toLowerCase();
                     let patrimonio = 'No relevado';
 
@@ -5088,7 +5121,6 @@
                         patrimonio = d.patrimonio;
                     }
 
-                    // Condición solicitada de Estado / Producción
                     const estadoEfectivo = getEstadoEfectivo(d, asignaciones);
                     let estado = '';
                     if (estadoEfectivo === 'produccion') {
@@ -5131,6 +5163,7 @@
                 </section>`;
             });
 
+            // ─── 3. ENSAMBLAR EL HTML COMPLETO ───
             const htmlCompleto = `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -5161,6 +5194,7 @@
     <div><h1>📋 Sumario CCTV</h1></div>
     <div class="meta">Exportado el ${fecha}<br>Criterio de agrupamiento: Unidades por ${_activos.orden.toUpperCase()}</div>
   </header>
+  ${htmlResumen}
   ${htmlSecciones}
 </div>
 <button class="btn-print" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>
@@ -5182,7 +5216,6 @@
             toast('Sumario descargado correctamente', 'success');
         },
     };
-
 
     // ════════════════════════════════════════════════════════════════════════════
     // § DOM HELPERS — populadores de selects, limpieza de formularios
