@@ -1,1 +1,1 @@
-# CCTVS
+SMG - Sistema de Gestión (PWA)

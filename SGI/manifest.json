@@ -1,14 +1,20 @@
 {
-  "name": "rei",
-  "short_name": "rei",
+  "name": "Materiales",
+  "short_name": "Materiales",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#1f2937",
   "orientation": "portrait",
   "scope": "./",
-  "id": "/Rei-laucher-app",
+  "id": "/Materiales-app",
   "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
     {
       "src": "./icons/icon-192.png",
       "sizes": "192x192",
