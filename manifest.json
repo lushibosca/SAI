@@ -1,13 +1,13 @@
 {
-  "name": "rei",
-  "short_name": "rei",
+  "name": "sai",
+  "short_name": "sai",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#1f2937",
   "orientation": "portrait",
   "scope": "./",
-  "id": "/Rei-laucher-app",
+  "id": "/SAI-laucher-app",
   "icons": [
     {
       "src": "./icon.svg",
