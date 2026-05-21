@@ -1,13 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="100%" height="100%">
-  <rect width="1024" height="1024" fill="#030303" />
-
-  <polygon points="512,160 100,860 924,860" fill="#1e1e1e" />
-
-  <path d="M 680,330 A 250 250 0 1 0 680,694"
-        fill="none"
-        stroke="#ffffff"
-        stroke-width="160"
-        stroke-linecap="round" />
-
-  <path d="M 950,920 Q 950,950 980,950 Q 950,950 950,980 Q 950,950 920,950 Q 950,950 950,920" fill="#888888" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="100" fill="#000000" />
+  <path d="M256 80 L460 430 L52 430 Z" fill="white" fill-opacity="0.1" />
+  <!-- S: dos curvas en S, la de arriba va de derecha a izquierda, la de abajo de izquierda a derecha -->
+  <path d="M340 160 C340 130 170 125 170 215 C170 305 342 300 342 390 C342 450 170 455 170 420"
+        stroke="white" stroke-width="52" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
 </svg>
