@@ -238,6 +238,18 @@
             <line x1="4" y1="20" x2="20" y2="20"></line>
             <line x1="4" y1="15" x2="20" y2="15"></line>
         </symbol>
+        <symbol id="icon-combine" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 6h4l4 6h8" class="icon-line"></path>
+            <path d="M4 18h4l4-6" class="icon-line"></path>
+        </symbol>
+        <symbol id="icon-replace-swap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="17 4 21 8 17 12"></polyline>
+            <line x1="3" y1="8" x2="21" y2="8"></line>
+            <polyline points="7 20 3 16 7 12"></polyline>
+            <line x1="21" y1="16" x2="3" y2="16"></line>
+        </symbol>
     </svg>
 
     <header class="header">
@@ -472,7 +484,7 @@
                     </svg>
                     Ajustes
                 </h3>
-                <span class="modal-header-version">260520</span>
+                <span class="modal-header-version">260522</span>
             </div>
 
             <div class="modal-scroll-body">
@@ -600,13 +612,13 @@
             </div>
 
             <div class="modal-scroll-body">
-            <div class="d-flex-between section-label section-label--mb">
-                <span>Grupos de la vista a incluir</span>
-                <span id="btn-toggle-chk-reporte" class="btn-text-action">Deseleccionar todo</span>
-            </div>
-            <div id="reporte-agrupamiento-lista" class="reporte-opciones-lista">
+                <div class="d-flex-between section-label section-label--mb">
+                    <span>Grupos de la vista a incluir</span>
+                    <span id="btn-toggle-chk-reporte" class="btn-text-action">Deseleccionar todo</span>
                 </div>
-        </div>
+                <div id="reporte-agrupamiento-lista" class="reporte-opciones-lista">
+                </div>
+            </div>
 
             <div class="modal-sticky-footer">
                 <div class="btn-group btn-group--no-mt">
@@ -614,7 +626,7 @@
                         <svg class="icon icon-line">
                             <use href="#icon-download" />
                         </svg>
-                        Descargar HTML
+                        Descargar
                     </button>
                     <button class="btn-cancel btn-flex">Cancelar</button>
                 </div>
@@ -786,30 +798,37 @@
     </div>
 
     <div class="modal" id="modal-gist-novedades">
-        <div class="modal-content sm">
+        <div class="modal-content">
             <h3>
                 <svg class="icon icon-line">
                     <use href="#icon-cloud-down" />
                 </svg>
                 Novedades en GitHub
             </h3>
-            <p class="gist-novedades-desc">Se encontraron registros remotos que no están en este dispositivo:</p>
+            <p class="gist-novedades-desc">Se encontraron datos en GitHub que difieren de los locales:</p>
             <div id="gist-novedades-detalle" class="gist-novedades-detalle"></div>
-            <p class="gist-novedades-pregunta">¿Querés agregarlos a tus datos locales?</p>
+            <p class="gist-novedades-pregunta" id="gist-novedades-pregunta">¿Querés agregarlos a tus datos locales?</p>
 
             <div class="btn-group btn-group--mt-lg">
                 <button class="btn-edit" id="gist-novedades-ok">
                     <svg class="icon icon-line">
-                        <use href="#icon-plus" />
-                    </svg> Agregar
+                        <use href="#icon-combine" />
+                    </svg> Combinar
                 </button>
-                <button class="btn-cancel" id="gist-novedades-ignorar">Ignorar</button>
+                <button class="btn-delete hidden" id="gist-novedades-reemplazar">
+                    <svg class="icon icon-line">
+                        <use href="#icon-replace-swap" />
+                    </svg> Reemplazar
+                </button>
+                <button class="btn-cancel" id="gist-novedades-ignorar"><svg class="icon icon-line">
+                        <use href="#icon-cancelar" />
+                    </svg>Ignorar</button>
             </div>
             <div class="btn-group">
-                <button class="btn-cancel btn-backup" id="gist-novedades-ver-detalle">
+                <button class="btn-cancel" id="gist-novedades-ver-detalle">
                     <svg class="icon icon-line">
                         <use href="#icon-report" />
-                    </svg> Ver detalle del merge
+                    </svg> Ver detalles
                 </button>
             </div>
         </div>
@@ -1462,12 +1481,12 @@
                 <div class="btn-group btn-group--no-mt">
                     <button id="btn-reemplazar" class="btn-edit btn-flex" disabled>
                         <svg class="icon icon-line">
-                            <use href="#icon-alert" />
+                            <use href="#icon-replace-swap" />
                         </svg> Reemplazar
                     </button>
                     <button id="btn-combinar" class="btn-backup btn-flex" disabled>
                         <svg class="icon icon-line">
-                            <use href="#icon-link" />
+                            <use href="#icon-combine" />
                         </svg> Combinar
                     </button>
                 </div>
