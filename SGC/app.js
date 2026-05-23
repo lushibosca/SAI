@@ -624,7 +624,9 @@
             _data.otros_prod = Array.isArray(d.otros_prod) ? d.otros_prod : [];
         } catch { _data = { dispositivos: [], grabadores: [], otros_prod: [] }; }
 
-        // Migración: asignar updatedAt a entidades que aún no lo tienen
+        // Migración: asignar updatedAt a entidades que aún no lo tienen.
+        // Se usa la fecha actual para que se sincronicen en el próximo merge,
+        // pero cualquier entidad remota con timestamp posterior seguirá ganando.
         let _migrado = false;
         const _tsMig = new Date().toISOString();
         _data.dispositivos.forEach(d => { if (!d.updatedAt) { d.updatedAt = _tsMig; _migrado = true; } });
@@ -1123,11 +1125,11 @@
                 return d ? (d.mac || d.serial || d.id) : id;
             }
 
-            // true si el remoto tiene timestamp más nuevo que el local
+            // Compara timestamps: retorna true si el remoto es más nuevo
             function _remoteMasNuevo(loc, rem) {
-                if (!rem.updatedAt) return false;
-                if (!loc.updatedAt) return true;
-                return rem.updatedAt > loc.updatedAt;
+                if (!rem.updatedAt) return false;       // remoto sin ts → fallback aditivo
+                if (!loc.updatedAt) return true;        // local sin ts → remoto gana
+                return rem.updatedAt > loc.updatedAt;   // ISO string comparison
             }
 
             const mapD = new Map(_data.dispositivos.map(d => [d.id, d]));
@@ -1144,22 +1146,25 @@
                 } else {
                     const loc = mapD.get(san.id);
                     if (_remoteMasNuevo(loc, san)) {
-                        const campos = ['tipo', 'estado', 'marca', 'modelo', 'serial', 'mac',
-                                        'patrimonio', 'firmware', 'forma', 'canales', 'updatedAt'];
+                        // Remoto más nuevo: sobreescribir campos editables preservando el id
+                        const camposDisp = ['tipo', 'estado', 'marca', 'modelo', 'serial', 'mac',
+                                            'patrimonio', 'firmware', 'forma', 'canales', 'updatedAt'];
                         const antes = {}, despues = {};
-                        campos.forEach(k => {
+                        camposDisp.forEach(k => {
                             if (san[k] !== undefined && san[k] !== loc[k]) {
-                                antes[k] = loc[k]; despues[k] = san[k]; loc[k] = san[k];
+                                antes[k] = loc[k]; despues[k] = san[k];
+                                loc[k] = san[k];
                             }
                         });
                         if (Object.keys(antes).length) {
                             cambios.push({ cat: 'disp', op: 'upd', label: _labelDisp(loc),
-                                campo: Object.keys(antes).filter(k => k !== 'updatedAt').join(', '),
-                                antes: Object.entries(antes).filter(([k]) => k !== 'updatedAt').map(([,v]) => v).join(' / '),
-                                despues: Object.entries(despues).filter(([k]) => k !== 'updatedAt').map(([,v]) => v).join(' / ') });
+                                campo: Object.keys(antes).join(', '),
+                                antes: Object.values(antes).join(' / '),
+                                despues: Object.values(despues).join(' / ') });
                             cDispsUpd++;
                         }
                     } else {
+                        // Fallback aditivo: solo rellena campos vacíos (sin timestamp o local más nuevo)
                         let updated = false;
                         ['marca', 'modelo', 'serial', 'mac', 'patrimonio', 'firmware', 'forma', 'estado'].forEach(k => {
                             if (!loc[k] && san[k]) {
@@ -1183,16 +1188,18 @@
                     const loc = mapG.get(san.id);
                     let updated = false;
                     if (_remoteMasNuevo(loc, san)) {
+                        // Remoto más nuevo: sobreescribir campos del grabador
                         const camposGrab = ['descripcion', 'marca', 'modelo', 'ip', 'edificio',
                                             'piso', 'rack', 'puerto', 'mac', 'comentarios', 'dispositivoId', 'updatedAt'];
                         camposGrab.forEach(k => {
                             if (san[k] !== undefined && san[k] !== loc[k]) {
-                                const va = k === 'dispositivoId' ? _getDispLabelForMerge(loc[k]) : (loc[k] || '');
-                                const vd = k === 'dispositivoId' ? _getDispLabelForMerge(san[k]) : san[k];
-                                if (k !== 'updatedAt') cambios.push({ cat: 'grab', op: 'upd', label: loc.descripcion || loc.id, campo: k, antes: va, despues: vd });
+                                const valAntes = k === 'dispositivoId' ? _getDispLabelForMerge(loc[k]) : (loc[k] || '');
+                                const valDespues = k === 'dispositivoId' ? _getDispLabelForMerge(san[k]) : san[k];
+                                cambios.push({ cat: 'grab', op: 'upd', label: loc.descripcion || loc.id, campo: k, antes: valAntes, despues: valDespues });
                                 loc[k] = san[k]; updated = true;
                             }
                         });
+                        // Sobreescribir canales completos
                         san.canales_data.forEach(cRem => {
                             const cLoc = loc.canales_data.find(c => c.canal === cRem.canal);
                             if (!cLoc) return;
@@ -1201,19 +1208,20 @@
                             ['dispositivoId', 'descripcion', 'ip', 'puerto', 'edificio', 'piso', 'rack', 'comentarios'].forEach(k => {
                                 if (k === 'dispositivoId' && inactivo) return;
                                 if (cRem[k] !== cLoc[k]) {
-                                    const va = k === 'dispositivoId' ? _getDispLabelForMerge(cLoc[k]) : (cLoc[k] || '');
-                                    const vd = k === 'dispositivoId' ? _getDispLabelForMerge(cRem[k]) : (cRem[k] || '');
-                                    cambios.push({ cat: 'canal', op: 'upd', label: `${loc.descripcion || loc.id} › Canal ${cRem.canal}`, campo: k, antes: va, despues: vd });
+                                    const valAntes = k === 'dispositivoId' ? _getDispLabelForMerge(cLoc[k]) : (cLoc[k] || '');
+                                    const valDespues = k === 'dispositivoId' ? _getDispLabelForMerge(cRem[k]) : (cRem[k] || '');
+                                    cambios.push({ cat: 'canal', op: 'upd', label: `${loc.descripcion || loc.id} › Canal ${cRem.canal}`, campo: k, antes: valAntes, despues: valDespues });
                                     cLoc[k] = cRem[k]; updated = true;
                                 }
                             });
                         });
                     } else {
+                        // Fallback aditivo
                         ['marca', 'modelo', 'ip', 'edificio', 'piso', 'rack', 'puerto', 'mac', 'comentarios', 'dispositivoId'].forEach(k => {
                             if (!loc[k] && san[k]) {
-                                const va = k === 'dispositivoId' ? _getDispLabelForMerge(loc[k]) : (loc[k] || '');
-                                const vd = k === 'dispositivoId' ? _getDispLabelForMerge(san[k]) : san[k];
-                                cambios.push({ cat: 'grab', op: 'upd', label: loc.descripcion || loc.id, campo: k, antes: va, despues: vd });
+                                const valAntes = k === 'dispositivoId' ? _getDispLabelForMerge(loc[k]) : (loc[k] || '');
+                                const valDespues = k === 'dispositivoId' ? _getDispLabelForMerge(san[k]) : san[k];
+                                cambios.push({ cat: 'grab', op: 'upd', label: loc.descripcion || loc.id, campo: k, antes: valAntes, despues: valDespues });
                                 loc[k] = san[k]; updated = true;
                             }
                         });
@@ -1245,8 +1253,17 @@
             (remoto.otros_prod || []).forEach(o => {
                 const san = o._sanitized ? o : S.sanitizarOtroProd(o);
                 if (!san) return;
+
+                // No restaurar asignaciones a dispositivos inactivos en el local
+                const _dispInactivo = (dispId) => {
+                    if (!dispId) return false;
+                    const d = _data.dispositivos.find(x => x.id === dispId);
+                    return d && ['averiado', 'revisar', 'desafectado'].includes(d.estado);
+                };
+
                 if (!mapO.has(san.id)) {
                     if (!_data.otros_prod) _data.otros_prod = [];
+                    if (san.dispositivoId && _dispInactivo(san.dispositivoId)) return;
                     _data.otros_prod.push(san); mapO.set(san.id, san); cOtrosAdd++;
                     cambios.push({ cat: 'otro', op: 'add', label: san.descripcion || san.id });
                 } else {
@@ -1257,6 +1274,7 @@
                                             'piso', 'rack', 'puerto', 'comentarios', 'updatedAt'];
                         camposOtro.forEach(k => {
                             if (san[k] !== undefined && san[k] !== loc[k]) {
+                                if (k === 'dispositivoId' && _dispInactivo(san[k])) return;
                                 const va = k === 'dispositivoId' ? _getDispLabelForMerge(loc[k]) : (loc[k] || '');
                                 const vd = k === 'dispositivoId' ? _getDispLabelForMerge(san[k]) : (san[k] || '');
                                 if (k !== 'updatedAt') cambios.push({ cat: 'otro', op: 'upd', label: loc.descripcion || loc.id, campo: k, antes: va, despues: vd });
@@ -1266,6 +1284,7 @@
                     } else {
                         ['dispositivoId', 'descripcion', 'ip', 'edificio', 'piso', 'rack', 'puerto', 'comentarios'].forEach(k => {
                             if (!loc[k] && san[k]) {
+                                if (k === 'dispositivoId' && _dispInactivo(san[k])) return;
                                 const va = k === 'dispositivoId' ? _getDispLabelForMerge(loc[k]) : (loc[k] || '');
                                 const vd = k === 'dispositivoId' ? _getDispLabelForMerge(san[k]) : san[k];
                                 cambios.push({ cat: 'otro', op: 'upd', label: loc.descripcion || loc.id, campo: k, antes: va, despues: vd });
@@ -1292,9 +1311,11 @@
                     const locTipo = S.TIPOS[k];
                     const remMasNuevo = v.updatedAt && (!locTipo?.updatedAt || v.updatedAt > locTipo.updatedAt);
                     if (!locTipo) {
+                        // Tipo nuevo
                         S.TIPOS[k] = { label: v.label, emoji: v.emoji || '📦', badge: 'badge-otro', dot: 'var(--c-gold)', builtin: false, ...(v.updatedAt ? { updatedAt: v.updatedAt } : {}) };
                         cTipos++;
                     } else if (remMasNuevo) {
+                        // Tipo existente pero el remoto es más nuevo: actualizar label/emoji
                         S.TIPOS[k] = { ...locTipo, label: v.label, emoji: v.emoji || locTipo.emoji, ...(v.updatedAt ? { updatedAt: v.updatedAt } : {}) };
                         cTipos++;
                     }
@@ -1320,7 +1341,6 @@
             return { ...res, cTipos, cEdif, cambios: res.cambios || [] };
         }
 
-        // Reemplaza todos los datos locales con los del remoto (sanitizados)
         function _reemplazarConRemoto(remoto) {
             _data.dispositivos = (remoto.dispositivos || [])
                 .map(d => S.sanitizarDisp(d, remoto.tiposCustom || {})).filter(Boolean);
@@ -1328,7 +1348,6 @@
                 .map(g => S.sanitizarGrab(g)).filter(Boolean);
             _data.otros_prod = (remoto.otros_prod || [])
                 .map(o => S.sanitizarOtroProd(o)).filter(Boolean);
-
             Object.keys(S.TIPOS).forEach(k => { if (!S.TIPOS_BUILTIN[k]) delete S.TIPOS[k]; });
             if (remoto.tiposCustom && typeof remoto.tiposCustom === 'object') {
                 Object.entries(remoto.tiposCustom).forEach(([k, v]) => {
@@ -1338,7 +1357,6 @@
                 });
                 S.guardarTipos();
             }
-
             S.edificios.length = 0;
             if (Array.isArray(remoto.edificios)) {
                 remoto.edificios.forEach(e => {
@@ -1348,8 +1366,6 @@
             }
         }
 
-        // Muestra el modal de novedades con opciones Combinar / Reemplazar
-        // origen: 'auto' (verificarAlAbrir) | 'manual' (bajar())
         function _mostrarNovedades(remoto, esValida, resMerge, origen) {
             const desc = document.querySelector('.gist-novedades-desc');
             if (desc) {
@@ -1357,7 +1373,6 @@
                     ? 'Se encontraron datos en GitHub que difieren de los locales:'
                     : 'Se encontraron datos en GitHub.<br><strong class="gist-warn-altered">⚠️ Atención: Los datos fueron alterados manualmente.</strong>';
             }
-
             const detalle = document.getElementById('gist-novedades-detalle');
             if (detalle) {
                 const chips = [];
@@ -1371,34 +1386,20 @@
                 if (resMerge.cEdif) chips.push(`<div class="gist-novedades-chip"><span class="gist-novedades-chip-label">Edificios</span><span class="gist-novedades-chip-count">+${resMerge.cEdif}</span></div>`);
                 detalle.innerHTML = chips.join('');
             }
-
             const pregunta = document.getElementById('gist-novedades-pregunta');
-            if (pregunta) {
-                pregunta.textContent = origen === 'manual'
-                    ? '¿Cómo querés aplicar los cambios del Gist?'
-                    : '¿Querés agregarlos a tus datos locales?';
-            }
-
+            if (pregunta) pregunta.textContent = origen === 'manual' ? '¿Cómo querés aplicar los cambios del Gist?' : '¿Querés agregarlos a tus datos locales?';
             const btnReemplazar = document.getElementById('gist-novedades-reemplazar');
             if (btnReemplazar) btnReemplazar.classList.toggle('hidden', origen !== 'manual');
 
             function _aplicarYCerrar(modo) {
-                const labelAccion = modo === 'reemplazar'
+                historial.empujar(modo === 'reemplazar'
                     ? (esValida ? 'Reemplazar con datos del Gist' : 'Reemplazar con datos del Gist (Forzado)')
-                    : (esValida ? 'Bajar novedades desde Gist' : 'Bajar novedades desde Gist (Forzado)');
-                historial.empujar(labelAccion);
-
-                if (modo === 'reemplazar') {
-                    _reemplazarConRemoto(remoto);
-                } else {
-                    _combinarDatosRemotos(remoto);
-                }
-
+                    : (esValida ? 'Bajar novedades desde Gist' : 'Bajar novedades desde Gist (Forzado)'));
+                if (modo === 'reemplazar') { _reemplazarConRemoto(remoto); } else { _combinarDatosRemotos(remoto); }
                 guardar(); render();
                 _cfg.lastSync = new Date().toISOString();
                 _guardarCfg(); _setStatusSync();
                 MM.cerrar('modal-gist-novedades');
-
                 const msgs = [];
                 if (modo === 'reemplazar') {
                     msgs.push(`${_data.dispositivos.length} disp`, `${_data.grabadores.length} grab`);
@@ -1419,16 +1420,13 @@
 
             const btnOk = document.getElementById('gist-novedades-ok');
             if (btnOk) btnOk.onclick = () => _aplicarYCerrar('combinar');
-
             if (btnReemplazar) btnReemplazar.onclick = () => {
                 confirmarModal('Esto reemplazará todos tus datos locales con los del Gist. ¿Confirmar?', 'Reemplazar').then(ok => {
                     if (ok) _aplicarYCerrar('reemplazar');
                 });
             };
-
             const btnVerDetalle = document.getElementById('gist-novedades-ver-detalle');
             if (btnVerDetalle) btnVerDetalle.onclick = () => _mostrarDetalleModal(resMerge.cambios || []);
-
             setTimeout(() => MM.abrir('modal-gist-novedades'), origen === 'manual' ? 0 : 600);
         }
 
@@ -4277,18 +4275,13 @@
 
             _actualizarBotonesEstado(d.estado || '');
 
-            // Solo bloquear estado si el dispositivo ES un grabador en producción
             const bloquearEstado = enProduccionComoGrab;
             ['averiado', 'revisar', 'desafectado'].forEach(e => {
                 const btn = document.getElementById(`btn-estado-${e}`);
                 if (btn) {
                     btn.disabled = bloquearEstado;
                     btn.title = bloquearEstado ? 'No se puede cambiar el estado: el dispositivo está en producción' : '';
-                    if (bloquearEstado) {
-                        btn.dataset.prodDisabled = '1';
-                    } else {
-                        delete btn.dataset.prodDisabled;
-                    }
+                    if (bloquearEstado) { btn.dataset.prodDisabled = '1'; } else { delete btn.dataset.prodDisabled; }
                 }
             });
 
