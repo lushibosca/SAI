@@ -4,20 +4,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://api.github.com; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self';
+         script-src 'self'; 
+         style-src 'self';
+         img-src 'self' data: blob:; 
+         font-src 'self' data:; 
+         connect-src 'self' https://api.github.com; 
+         object-src 'none'; 
+         base-uri 'none'; 
+         form-action 'none'; 
+         frame-ancestors 'none'; 
+         upgrade-insecure-requests;">
     <meta name="referrer" content="no-referrer">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml" href="./icon.svg">
+    <script src="./flash.js"></script>
+    <link rel="stylesheet" href="./styles.css">
+    <script src="./app.js" defer></script>
     <title>Racks</title>
-    
+
 </head>
 
 <body>
 
     <!-- SVG SPRITES -->
-    <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+    <svg xmlns="http://www.w3.org/2000/svg" class="svg-sprites">
         <defs>
             <symbol id="icon-rack" viewBox="0 0 24 24">
                 <path
@@ -164,7 +178,7 @@
     <!-- HEADER -->
     <header class="header" id="main-header">
         <div class="header-logo">
-            <svg style="width:28px;height:28px;fill:var(--text-main)">
+            <svg class="header-logo-icon">
                 <use href="#icon-rack" />
             </svg>
         </div>
@@ -175,22 +189,22 @@
             </svg> Dashboard
         </div>
         <div class="header-actions">
-            <button class="icon-btn" id="btn-undo" title="Deshacer (Ctrl+Z)" disabled onclick="historial.undo()">
+            <button class="icon-btn" id="btn-undo" title="Deshacer (Ctrl+Z)" disabled>
                 <svg class="svg-icon">
                     <use href="#icon-undo" />
                 </svg>
             </button>
-            <button class="icon-btn" id="btn-redo" title="Rehacer (Ctrl+Y)" disabled onclick="historial.redo()">
+            <button class="icon-btn" id="btn-redo" title="Rehacer (Ctrl+Y)" disabled>
                 <svg class="svg-icon">
                     <use href="#icon-redo" />
                 </svg>
             </button>
-            <button class="icon-btn" id="btn-dark-mode" title="Modo oscuro" onclick="toggleDarkMode()">
+            <button class="icon-btn" id="btn-dark-mode" title="Modo oscuro">
                 <svg class="svg-icon">
                     <use href="#icon-moon" id="dark-icon-use" />
                 </svg>
             </button>
-            <button class="icon-btn" id="btn-ajustes" title="Ajustes" onclick="UI.abrirAjustes()">
+            <button class="icon-btn" id="btn-ajustes" title="Ajustes">
                 <svg class="svg-icon">
                     <use href="#icon-settings" />
                 </svg>
@@ -203,17 +217,17 @@
 
         <!-- TABS (3) con slider -->
         <div class="tabs tabs-3">
-            <button class="tab-btn activa" id="tab-dashboard" onclick="switchTab('dashboard')">
+            <button class="tab-btn activa" id="tab-dashboard">
                 <svg class="svg-icon">
                     <use href="#icon-dashboard" />
                 </svg> Dashboard
             </button>
-            <button class="tab-btn" id="tab-servicio" onclick="switchTab('servicio')">
+            <button class="tab-btn" id="tab-servicio">
                 <svg class="svg-icon">
                     <use href="#icon-service" />
                 </svg> Servicio
             </button>
-            <button class="tab-btn" id="tab-inventario" onclick="switchTab('inventario')">
+            <button class="tab-btn" id="tab-inventario">
                 <svg class="svg-icon">
                     <use href="#icon-inventory" />
                 </svg> Inventario
@@ -227,8 +241,8 @@
                     <use href="#icon-search" />
                 </svg>
                 <input type="text" id="busq-global" placeholder="Buscar rack por número, marca, edificio, lugar…"
-                    autocomplete="off" oninput="onBusqGlobal()">
-                <button id="busq-clear-btn" title="Limpiar" onclick="limpiarBusqueda()">
+                    autocomplete="off">
+                <button id="busq-clear-btn" title="Limpiar">
                     <svg class="svg-icon">
                         <use href="#icon-close" />
                     </svg>
@@ -246,17 +260,17 @@
                             <use href="#icon-table" />
                         </svg>
                         <h2>Inventario</h2>
-                        <div style="display:flex;gap:0.4rem;align-items:center" id="filter-chips-dash"></div>
+                        <div class="filter-chips-row" id="filter-chips-dash"></div>
                     </div>
                     <div class="table-wrap">
                         <table>
                             <thead>
                                 <tr>
-                                    <th style="width:90px">Rack</th>
+                                    <th class="col-rack">Rack</th>
                                     <th>Marca / Patrimonio</th>
-                                    <th style="width:150px">Ubicación</th>
-                                    <th style="width:90px">Estado</th>
-                                    <th style="width:80px">Puertos</th>
+                                    <th class="col-ubic">Ubicación</th>
+                                    <th class="col-estado">Estado</th>
+                                    <th class="col-puertos">Puertos</th>
                                 </tr>
                             </thead>
                             <tbody id="tabla-racks"></tbody>
@@ -286,11 +300,11 @@
                     <table>
                         <thead>
                             <tr>
-                                <th style="width:80px">Rack</th>
-                                <th style="width:120px">Marca</th>
+                                <th class="col-rack-sm">Rack</th>
+                                <th class="col-marca">Marca</th>
                                 <th>Ubicación en servicio</th>
-                                <th style="width:90px">Desde</th>
-                                <th style="width:80px">Puertos</th>
+                                <th class="col-desde">Desde</th>
+                                <th class="col-rack-sm">Puertos</th>
                             </tr>
                         </thead>
                         <tbody id="tabla-servicio"></tbody>
@@ -313,18 +327,18 @@
                     <h2>Inventario completo</h2>
                     <span id="inventario-count" class="badge badge-gray">0</span>
                 </div>
-                <div style="padding:0 1rem 0.75rem;display:flex;gap:0.4rem;flex-wrap:wrap" id="filter-chips-inv"></div>
+                <div class="filter-chips-inv" id="filter-chips-inv"></div>
                 <div class="table-wrap">
                     <table>
                         <thead>
                             <tr>
-                                <th style="width:90px">Rack</th>
-                                <th style="width:80px">Patrim.</th>
+                                <th class="col-rack">Rack</th>
+                                <th class="col-patrim">Patrim.</th>
                                 <th>Marca</th>
                                 <th>Edificio / Lugar</th>
-                                <th style="width:40px">U</th>
-                                <th style="width:90px">Estado</th>
-                                <th style="width:90px">Puertos</th>
+                                <th class="col-u">U</th>
+                                <th class="col-estado">Estado</th>
+                                <th class="col-estado">Puertos</th>
                             </tr>
                         </thead>
                         <tbody id="tabla-inventario"></tbody>
@@ -341,15 +355,14 @@
 
     <!-- FAB -->
     <div class="fab-container">
-        <button id="btn-fab-main" class="fab-main-btn" title="Nuevo rack" onclick="UI.abrirNuevoRack()">
+        <button id="btn-fab-main" class="fab-main-btn" title="Nuevo rack">
             <svg class="svg-icon">
                 <use href="#icon-add" />
             </svg>
         </button>
     </div>
 
-    <button id="btn-scroll-top" class="btn-scroll-top" title="Subir"
-        onclick="window.scrollTo({top:0,behavior:'smooth'})">
+    <button id="btn-scroll-top" class="btn-scroll-top" title="Subir">
         <svg class="svg-icon svg-scroll-top">
             <use href="#icon-arrow-up" />
         </svg>
@@ -405,7 +418,7 @@
                             autocomplete="off">
                     </div>
                 </div>
-                <div class="form-row form-row-3" style="grid-template-columns:1fr 1fr 1fr">
+                <div class="form-row form-row-3 form-row-3col">
                     <div class="form-group">
                         <label>Puertos 24p</label>
                         <input type="number" id="rack-p24-nuevo" placeholder="0" min="0" max="999">
@@ -422,17 +435,13 @@
                 <div class="form-group">
                     <label>Estado</label>
                     <div class="estado-selector" id="estado-selector-nuevo">
-                        <button class="estado-btn activo inventario" data-estado="inventario"
-                            onclick="selEstado('nuevo','inventario')">Inventario</button>
-                        <button class="estado-btn servicio" data-estado="servicio"
-                            onclick="selEstado('nuevo','servicio')">Servicio</button>
-                        <button class="estado-btn mantenimiento" data-estado="mantenimiento"
-                            onclick="selEstado('nuevo','mantenimiento')">Mantenim.</button>
-                        <button class="estado-btn baja" data-estado="baja"
-                            onclick="selEstado('nuevo','baja')">Baja</button>
+                        <button class="estado-btn activo inventario" data-estado="inventario" data-sufijo="nuevo">Inventario</button>
+                        <button class="estado-btn servicio" data-estado="servicio" data-sufijo="nuevo">Servicio</button>
+                        <button class="estado-btn mantenimiento" data-estado="mantenimiento" data-sufijo="nuevo">Mantenim.</button>
+                        <button class="estado-btn baja" data-estado="baja" data-sufijo="nuevo">Baja</button>
                     </div>
                 </div>
-                <div id="asig-wrap-nuevo" style="display:none">
+                <div id="asig-wrap-nuevo" class="asig-wrap-hidden">
                     <div class="asig-wrap">
                         <p class="asig-wrap-title">Ubicación en servicio</p>
                         <div class="form-row">
@@ -465,7 +474,7 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn-primary btn-flex" onclick="guardarNuevoRack()">
+                <button class="btn-primary btn-flex" id="rack-nuevo-guardar-btn">
                     <svg class="svg-icon">
                         <use href="#icon-save" />
                     </svg> Guardar
@@ -527,7 +536,7 @@
                             autocomplete="off">
                     </div>
                 </div>
-                <div class="form-row form-row-3" style="grid-template-columns:1fr 1fr 1fr">
+                <div class="form-row form-row-3 form-row-3col">
                     <div class="form-group">
                         <label>Puertos 24p</label>
                         <input type="number" id="rack-p24-editar" placeholder="0" min="0" max="999">
@@ -544,17 +553,13 @@
                 <div class="form-group">
                     <label>Estado</label>
                     <div class="estado-selector" id="estado-selector-editar">
-                        <button class="estado-btn inventario" data-estado="inventario"
-                            onclick="selEstado('editar','inventario')">Inventario</button>
-                        <button class="estado-btn servicio" data-estado="servicio"
-                            onclick="selEstado('editar','servicio')">Servicio</button>
-                        <button class="estado-btn mantenimiento" data-estado="mantenimiento"
-                            onclick="selEstado('editar','mantenimiento')">Mantenim.</button>
-                        <button class="estado-btn baja" data-estado="baja"
-                            onclick="selEstado('editar','baja')">Baja</button>
+                        <button class="estado-btn inventario" data-estado="inventario" data-sufijo="editar">Inventario</button>
+                        <button class="estado-btn servicio" data-estado="servicio" data-sufijo="editar">Servicio</button>
+                        <button class="estado-btn mantenimiento" data-estado="mantenimiento" data-sufijo="editar">Mantenim.</button>
+                        <button class="estado-btn baja" data-estado="baja" data-sufijo="editar">Baja</button>
                     </div>
                 </div>
-                <div id="asig-wrap-editar" style="display:none">
+                <div id="asig-wrap-editar" class="asig-wrap-hidden">
                     <div class="asig-wrap">
                         <p class="asig-wrap-title">Ubicación en servicio</p>
                         <div class="form-row">
@@ -587,13 +592,13 @@
                 </div>
             </div>
             <div class="modal-footer modal-footer-col">
-                <div class="flex-row-gap" style="display:flex;gap:0.5rem">
-                    <button class="btn-primary btn-flex" onclick="guardarEditarRack()">
+                <div class="flex-row-gap">
+                    <button class="btn-primary btn-flex" id="rack-editar-guardar-btn">
                         <svg class="svg-icon">
                             <use href="#icon-save" />
                         </svg> Guardar
                     </button>
-                    <button class="btn-danger btn-flex" onclick="eliminarRackActual()">
+                    <button class="btn-danger btn-flex" id="rack-editar-eliminar-btn">
                         <svg class="svg-icon">
                             <use href="#icon-trash" />
                         </svg> Eliminar
@@ -619,43 +624,43 @@
             <div class="modal-body modal-body-pb">
                 <p class="ajustes-section-label">Sincronización</p>
                 <div class="ajustes-gist-group">
-                    <button class="ajustes-row ajustes-gist-main" onclick="UI.abrirGist()">
+                    <button class="ajustes-row ajustes-gist-main" id="ajustes-gist-main-btn">
                         <svg class="svg-icon">
                             <use href="#icon-gist" />
                         </svg>
                         <span>Gist Sync</span>
                         <span class="ajustes-arrow">›</span>
                     </button>
-                    <button class="ajustes-gist-quick-btn" id="btn-ajustes-gist-subir" style="display:none"
-                        title="Subir" onclick="GistSync.subir()">
+                    <button class="ajustes-gist-quick-btn gist-quick-hidden" id="btn-ajustes-gist-subir"
+                        title="Subir">
                         <svg class="svg-icon">
                             <use href="#icon-upload" />
                         </svg>
                     </button>
-                    <button class="ajustes-gist-quick-btn" id="btn-ajustes-gist-bajar" style="display:none"
-                        title="Bajar" onclick="GistSync.bajar()">
+                    <button class="ajustes-gist-quick-btn gist-quick-hidden" id="btn-ajustes-gist-bajar"
+                        title="Bajar">
                         <svg class="svg-icon">
                             <use href="#icon-download" />
                         </svg>
                     </button>
                 </div>
                 <p class="ajustes-section-label ajustes-section-label-mt">Datos</p>
-                <button class="ajustes-row" onclick="exportarDatos()">
+                <button class="ajustes-row" id="ajustes-exportar-btn">
                     <svg class="svg-icon">
                         <use href="#icon-download" />
                     </svg>
                     <span>Exportar datos</span>
                     <span class="ajustes-arrow">›</span>
                 </button>
-                <button class="ajustes-row" onclick="UI.abrirImportar()">
+                <button class="ajustes-row" id="ajustes-importar-btn">
                     <svg class="svg-icon">
                         <use href="#icon-upload" />
                     </svg>
                     <span>Importar datos</span>
                     <span class="ajustes-arrow">›</span>
                 </button>
-                <button class="ajustes-row" onclick="restablecerDatos()" style="color:var(--c-red)">
-                    <svg class="svg-icon" style="color:var(--c-red)">
+                <button class="ajustes-row btn-danger-text" id="ajustes-restablecer-btn">
+                    <svg class="svg-icon icon-danger">
                         <use href="#icon-trash" />
                     </svg>
                     <span>Restablecer datos</span>
@@ -685,7 +690,7 @@
                     <label>Token de GitHub</label>
                     <div class="gist-input-row">
                         <input type="password" id="gist-token" placeholder="ghp_…" autocomplete="off">
-                        <button class="icon-btn gist-eye-btn" id="gist-token-eye" onclick="GistSync.toggleToken()">
+                        <button class="icon-btn gist-eye-btn" id="gist-token-eye">
                             <svg class="svg-icon">
                                 <use href="#icon-eye" id="gist-eye-icon" />
                             </svg>
@@ -694,35 +699,34 @@
                 </div>
                 <div class="form-group">
                     <label>Gist ID</label>
-                    <input type="text" id="gist-id" placeholder="xxxxxxxxxxxxxxxxxxxxxxxx" autocomplete="off"
-                        oninput="GistSync._linkBtn()">
+                    <input type="text" id="gist-id" placeholder="xxxxxxxxxxxxxxxxxxxxxxxx" autocomplete="off">
                     <a class="gist-link-a" id="gist-link-btn" target="_blank" rel="noopener">
-                        <svg class="svg-icon" style="width:14px;height:14px">
+                        <svg class="svg-icon gist-link-icon">
                             <use href="#icon-external-link" />
                         </svg> Ver en GitHub
                     </a>
                 </div>
                 <div class="toggle-row">
                     <label>Sincronización automática</label>
-                    <button class="toggle-switch" id="gist-autosync-toggle" onclick="GistSync.toggleAuto()"></button>
+                    <button class="toggle-switch" id="gist-autosync-toggle"></button>
                 </div>
                 <p class="gist-status" id="gist-sync-status">Sin sincronizar</p>
             </div>
-            <div class="modal-footer" style="flex-direction:column;gap:0.5rem">
-                <div style="display:flex;gap:0.5rem;width:100%">
-                    <button class="btn-success btn-flex" id="btn-gist-bajar" onclick="GistSync.bajar()">
+            <div class="modal-footer modal-footer-col-gap">
+                <div class="modal-footer-btn-row">
+                    <button class="btn-success btn-flex" id="btn-gist-bajar">
                         <svg class="svg-icon">
                             <use href="#icon-download" />
                         </svg> Bajar
                     </button>
-                    <button class="btn-primary btn-flex" id="btn-gist-subir" onclick="GistSync.subir()">
+                    <button class="btn-primary btn-flex" id="btn-gist-subir">
                         <svg class="svg-icon">
                             <use href="#icon-upload" />
                         </svg> Subir
                     </button>
                 </div>
-                <div style="display:flex;gap:0.5rem;width:100%">
-                    <button class="btn-primary btn-flex" onclick="GistSync.guardarConfig()">
+                <div class="modal-footer-btn-row">
+                    <button class="btn-primary btn-flex" id="gist-guardar-config-btn">
                         <svg class="svg-icon">
                             <use href="#icon-save" />
                         </svg> Guardar config
@@ -746,26 +750,22 @@
                     </svg> Importar datos</h3>
             </div>
             <div class="modal-body modal-body-pb">
-                <div class="import-dropzone" id="importar-dropzone"
-                    onclick="document.getElementById('importar-file-input').click()">
-                    <svg class="svg-icon" style="width:32px;height:32px;opacity:0.4">
+                <div class="import-dropzone" id="importar-dropzone">
+                    <svg class="svg-icon dropzone-icon">
                         <use href="#icon-upload" />
                     </svg>
                     <br>
                     <span id="importar-dropzone-label">Seleccioná o arrastrá un archivo .json</span>
                 </div>
-                <input type="file" id="importar-file-input" accept=".json" style="display:none"
-                    onchange="onImportarFileChange(event)">
+                <input type="file" id="importar-file-input" accept=".json" class="input-hidden">
             </div>
             <div class="modal-footer">
-                <button class="btn-primary btn-flex" id="importar-combinar-btn" disabled
-                    onclick="importarDatos('combinar')">
+                <button class="btn-primary btn-flex" id="importar-combinar-btn" disabled>
                     <svg class="svg-icon">
                         <use href="#icon-combine" />
                     </svg> Combinar
                 </button>
-                <button class="btn-danger btn-flex" id="importar-confirmar-btn" disabled
-                    onclick="importarDatos('reemplazar')">
+                <button class="btn-danger btn-flex" id="importar-confirmar-btn" disabled>
                     <svg class="svg-icon">
                         <use href="#icon-replace-swap" />
                     </svg> Reemplazar

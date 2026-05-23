@@ -442,7 +442,7 @@ function renderFilterChips() {
     ['filter-chips-dash', 'filter-chips-inv'].forEach(id => {
         const el = document.getElementById(id); if (!el) return;
         el.innerHTML = CHIPS.map(c => `
-            <button class="filter-chip${_filtroEstado === c.key ? ' activo' : ''}" onclick="setFiltroEstado('${c.key}')">${c.label}</button>
+            <button class="filter-chip${_filtroEstado === c.key ? ' activo' : ''}" data-filtro="${c.key}">${c.label}</button>
         `).join('');
     });
 }
@@ -474,12 +474,12 @@ function renderDashboard() {
         empty.classList.add('empty-state-hidden');
         tbody.innerHTML = racks.map(r => {
             const loc = [r.edificio, r.piso].filter(Boolean).join(' ');
-            return `<tr class="tr-clickable rack-estado-${r.estado}" onclick="abrirModalEditarRack('${esc(r.id)}')">
-                <td style="font-weight:800;color:var(--accent)">${esc(r.numero)}</td>
+            return `<tr class="tr-clickable rack-estado-${r.estado}" data-rack-id="${esc(r.id)}">
+                <td class="td-rack-num">${esc(r.numero)}</td>
                 <td>${esc(r.marca || r.patrimonio || '—')}</td>
-                <td style="font-size:0.82rem;color:var(--text-muted)">${esc(loc || '—')}</td>
+                <td class="td-muted td-sm">${esc(loc || '—')}</td>
                 <td>${ESTADO_BADGE[r.estado] || ''}</td>
-                <td style="font-size:0.78rem;color:var(--text-muted)">${esc(_ports(r))}</td>
+                <td class="td-muted td-xs">${esc(_ports(r))}</td>
             </tr>`;
         }).join('');
     }
@@ -492,20 +492,20 @@ function renderDashboard() {
     const enBaja = all.filter(r => r.estado === 'baja').length;
 
     const distRows = total ? [
-        { label: 'Inventario', n: enInv, color: 'var(--c-blue)' },
-        { label: 'Servicio', n: enServ, color: 'var(--c-green)' },
-        { label: 'Mantenim.', n: enMant, color: 'var(--c-orange)' },
-        { label: 'Baja', n: enBaja, color: 'var(--c-red)' },
+        { label: 'Inventario', n: enInv, cls: 'dist-inventario' },
+        { label: 'Servicio', n: enServ, cls: 'dist-servicio' },
+        { label: 'Mantenim.', n: enMant, cls: 'dist-mantenimiento' },
+        { label: 'Baja', n: enBaja, cls: 'dist-baja' },
     ].filter(e => e.n > 0).map(e => {
         const pct = Math.round((e.n / total) * 100);
         return `<div class="rack-dist-bar">
-            <span class="rack-dist-label" style="color:${e.color}">${e.label}</span>
-            <div class="rack-dist-bar-track"><div class="rack-dist-bar-fill" style="width:${pct}%;background:${e.color}"></div></div>
+            <span class="rack-dist-label ${e.cls}">${e.label}</span>
+            <div class="rack-dist-bar-track"><div class="rack-dist-bar-fill ${e.cls}" data-pct="${pct}"></div></div>
             <span class="rack-dist-count">${e.n}</span>
         </div>`;
-    }).join('') : '<p style="font-size:0.82rem;color:var(--text-muted)">Sin datos</p>';
+    }).join('') : '<p class="td-muted td-sm">Sin datos</p>';
 
-    document.getElementById('stats-grid').innerHTML = `
+    const statsHtml = `
         <div class="stat-chip">
             <span class="stat-chip-label">Racks</span>
             <span class="stat-chip-value">${total}</span>
@@ -513,19 +513,25 @@ function renderDashboard() {
         </div>
         <div class="stat-chip">
             <span class="stat-chip-label">En Servicio</span>
-            <span class="stat-chip-value" style="color:var(--c-green)">${enServ}</span>
+            <span class="stat-chip-value dist-servicio">${enServ}</span>
             <span class="stat-chip-sub">activos</span>
         </div>
         <div class="stat-chip">
             <span class="stat-chip-label">Inventario</span>
-            <span class="stat-chip-value" style="color:var(--c-blue)">${enInv}</span>
+            <span class="stat-chip-value dist-inventario">${enInv}</span>
             <span class="stat-chip-sub">disponibles</span>
         </div>
         <div class="rack-sidebar-chip">
-            <span class="stat-chip-label" style="margin-bottom:0.5rem">Distribución</span>
+            <span class="stat-chip-label stat-chip-label-mb">Distribución</span>
             ${distRows}
         </div>
     `;
+    const statsEl = document.getElementById('stats-grid');
+    statsEl.innerHTML = statsHtml;
+    statsEl.querySelectorAll('.rack-dist-bar-fill[data-pct]').forEach(el => {
+        el.style.width = el.dataset.pct + '%';
+        el.removeAttribute('data-pct');
+    });
 }
 
 // ═══════════════════════════════════════════════════════
@@ -552,12 +558,12 @@ function renderServicio() {
 
     tbody.innerHTML = racks.map(r => {
         const loc = r.asig ? [r.asig.edificio, r.asig.piso, r.asig.lugar].filter(Boolean).join(' · ') : (r.edificio || '—');
-        return `<tr class="tr-clickable" onclick="abrirModalEditarRack('${esc(r.id)}')">
-            <td class="rack-num-cell" style="font-weight:800;color:var(--accent)">${esc(r.numero)}</td>
+        return `<tr class="tr-clickable" data-rack-id="${esc(r.id)}">
+            <td class="td-rack-num">${esc(r.numero)}</td>
             <td>${esc(r.marca || '—')}</td>
-            <td style="font-size:0.82rem">${esc(loc || '—')}</td>
-            <td style="font-size:0.82rem;color:var(--text-muted)">${r.asig?.fecha ? formatFecha(r.asig.fecha) : '—'}</td>
-            <td style="font-size:0.78rem;color:var(--text-muted)">${esc(_ports(r))}</td>
+            <td class="td-sm">${esc(loc || '—')}</td>
+            <td class="td-muted td-sm">${r.asig?.fecha ? formatFecha(r.asig.fecha) : '—'}</td>
+            <td class="td-muted td-xs">${esc(_ports(r))}</td>
         </tr>`;
     }).join('');
 }
@@ -587,14 +593,14 @@ function renderInventario() {
 
     tbody.innerHTML = racks.map(r => {
         const loc = [r.edificio, r.piso, r.lugar].filter(Boolean).join(' · ');
-        return `<tr class="tr-clickable rack-estado-${r.estado}" onclick="abrirModalEditarRack('${esc(r.id)}')">
-            <td style="font-weight:800;color:var(--accent)">${esc(r.numero)}</td>
-            <td style="font-size:0.82rem;color:var(--text-muted)">${esc(r.patrimonio || '—')}</td>
+        return `<tr class="tr-clickable rack-estado-${r.estado}" data-rack-id="${esc(r.id)}">
+            <td class="td-rack-num">${esc(r.numero)}</td>
+            <td class="td-muted td-sm">${esc(r.patrimonio || '—')}</td>
             <td>${esc(r.marca || '—')}</td>
-            <td style="font-size:0.82rem;color:var(--text-muted)">${esc(loc || '—')}</td>
-            <td style="text-align:center">${r.unidades ? esc(String(r.unidades)) : '—'}</td>
+            <td class="td-muted td-sm">${esc(loc || '—')}</td>
+            <td class="td-center">${r.unidades ? esc(String(r.unidades)) : '—'}</td>
             <td>${ESTADO_BADGE[r.estado] || ''}</td>
-            <td style="font-size:0.78rem;color:var(--text-muted)">${esc(_ports(r))}</td>
+            <td class="td-muted td-xs">${esc(_ports(r))}</td>
         </tr>`;
     }).join('');
 }
@@ -890,3 +896,81 @@ try {
 renderFilterChips();
 renderTodo();
 GistSync.init();
+
+// ═══════════════════════════════════════════════════════
+//  BINDINGS (reemplaza los onclick inline eliminados con unsafe-inline)
+// ═══════════════════════════════════════════════════════
+function _initBindings() {
+    // Tabs
+    document.getElementById('tab-dashboard')?.addEventListener('click', () => switchTab('dashboard'));
+    document.getElementById('tab-servicio')?.addEventListener('click', () => switchTab('servicio'));
+    document.getElementById('tab-inventario')?.addEventListener('click', () => switchTab('inventario'));
+
+    // Header
+    document.getElementById('btn-dark-mode')?.addEventListener('click', toggleDarkMode);
+    document.getElementById('btn-ajustes')?.addEventListener('click', () => UI.abrirAjustes());
+    document.getElementById('btn-undo')?.addEventListener('click', () => historial.undo());
+    document.getElementById('btn-redo')?.addEventListener('click', () => historial.redo());
+
+    // Búsqueda
+    document.getElementById('busq-global')?.addEventListener('input', onBusqGlobal);
+    document.getElementById('busq-clear-btn')?.addEventListener('click', limpiarBusqueda);
+
+    // FAB + scroll top
+    document.getElementById('btn-fab-main')?.addEventListener('click', () => UI.abrirNuevoRack());
+    document.getElementById('btn-scroll-top')?.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+
+    // Modal nuevo rack
+    document.getElementById('rack-nuevo-guardar-btn')?.addEventListener('click', guardarNuevoRack);
+    document.getElementById('estado-selector-nuevo')?.addEventListener('click', e => {
+        const btn = e.target.closest('.estado-btn'); if (btn) selEstado('nuevo', btn.dataset.estado);
+    });
+
+    // Modal editar rack
+    document.getElementById('rack-editar-guardar-btn')?.addEventListener('click', guardarEditarRack);
+    document.getElementById('rack-editar-eliminar-btn')?.addEventListener('click', eliminarRackActual);
+    document.getElementById('estado-selector-editar')?.addEventListener('click', e => {
+        const btn = e.target.closest('.estado-btn'); if (btn) selEstado('editar', btn.dataset.estado);
+    });
+
+    // Clics en filas de tablas (delegación)
+    ['tabla-racks', 'tabla-servicio', 'tabla-inventario'].forEach(tid => {
+        document.getElementById(tid)?.addEventListener('click', e => {
+            const tr = e.target.closest('tr[data-rack-id]');
+            if (tr) abrirModalEditarRack(tr.dataset.rackId);
+        });
+    });
+
+    // Ajustes
+    document.getElementById('ajustes-exportar-btn')?.addEventListener('click', exportarDatos);
+    document.getElementById('ajustes-importar-btn')?.addEventListener('click', () => UI.abrirImportar());
+    document.getElementById('ajustes-restablecer-btn')?.addEventListener('click', restablecerDatos);
+    document.getElementById('ajustes-gist-main-btn')?.addEventListener('click', () => UI.abrirGist());
+    document.getElementById('btn-ajustes-gist-subir')?.addEventListener('click', () => GistSync.subir());
+    document.getElementById('btn-ajustes-gist-bajar')?.addEventListener('click', () => GistSync.bajar());
+
+    // Modal Gist
+    document.getElementById('gist-token-eye')?.addEventListener('click', () => GistSync.toggleToken());
+    document.getElementById('gist-autosync-toggle')?.addEventListener('click', () => GistSync.toggleAuto());
+    document.getElementById('gist-id')?.addEventListener('input', () => GistSync._linkBtn());
+    document.getElementById('gist-guardar-config-btn')?.addEventListener('click', () => GistSync.guardarConfig());
+    document.getElementById('btn-gist-subir')?.addEventListener('click', () => GistSync.subir());
+    document.getElementById('btn-gist-bajar')?.addEventListener('click', () => GistSync.bajar());
+
+    // Modal importar
+    document.getElementById('importar-file-input')?.addEventListener('change', onImportarFileChange);
+    document.getElementById('importar-dropzone')?.addEventListener('click', () => document.getElementById('importar-file-input').click());
+    document.getElementById('importar-confirmar-btn')?.addEventListener('click', () => importarDatos('reemplazar'));
+    document.getElementById('importar-combinar-btn')?.addEventListener('click', () => importarDatos('combinar'));
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _initBindings);
+} else {
+    _initBindings();
+}
+// Delegación para filter-chips (generados dinámicamente, no pueden tener onclick inline)
+document.addEventListener('click', e => {
+    const chip = e.target.closest('.filter-chip[data-filtro]');
+    if (chip) setFiltroEstado(chip.dataset.filtro);
+});

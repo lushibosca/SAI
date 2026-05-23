@@ -2295,6 +2295,57 @@
             }
         }
 
+
+        /* ════════════════════════════════════════════════════
+           RACKS — clases para reemplazar style= inline en JS
+           ════════════════════════════════════════════════════ */
+
+        /* Celdas de tabla */
+        .td-rack-num {
+            font-weight: 800;
+            color: var(--accent);
+        }
+
+        .td-muted {
+            color: var(--text-muted);
+        }
+
+        .td-sm {
+            font-size: 0.82rem;
+        }
+
+        .td-xs {
+            font-size: 0.78rem;
+        }
+
+        .td-center {
+            text-align: center;
+        }
+
+        /* Stat chip value con color de estado */
+        .dist-inventario { color: var(--c-blue); }
+        .dist-servicio   { color: var(--c-green); }
+        .dist-mantenimiento { color: var(--c-orange); }
+        .dist-baja       { color: var(--c-red); }
+
+        /* Barra de distribución: fill coloreado */
+        .rack-dist-bar-fill.dist-inventario { background: var(--c-blue); }
+        .rack-dist-bar-fill.dist-servicio   { background: var(--c-green); }
+        .rack-dist-bar-fill.dist-mantenimiento { background: var(--c-orange); }
+        .rack-dist-bar-fill.dist-baja       { background: var(--c-red); }
+
+        /* Label de distribución coloreado */
+        .rack-dist-label.dist-inventario { color: var(--c-blue); }
+        .rack-dist-label.dist-servicio   { color: var(--c-green); }
+        .rack-dist-label.dist-mantenimiento { color: var(--c-orange); }
+        .rack-dist-label.dist-baja       { color: var(--c-red); }
+
+        /* Stat chip label con margen inferior (sidebar distribución) */
+        .stat-chip-label-mb {
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
         @media (hover: hover) {
 
             /* Elementos que comparten el mismo filtro al hacer hover */
@@ -2744,4 +2795,106 @@
         .confirmar-texto {
             color: var(--text-muted);
             font-size: 0.9rem;
+        }
+
+        /* ── Clases para reemplazar estilos inline ── */
+
+        /* SVG sprites oculto */
+        .svg-sprites {
+            display: none;
+        }
+
+        /* Ícono de logo en el header */
+        .header-logo-icon {
+            width: 28px;
+            height: 28px;
+            fill: var(--text-main);
+        }
+
+        /* Chips de filtro en el card-header del dashboard */
+        .filter-chips-row {
+            display: flex;
+            gap: 0.4rem;
+            align-items: center;
+        }
+
+        /* Columnas de tabla con ancho fijo */
+        .col-rack    { width: 90px; }
+        .col-rack-sm { width: 80px; }
+        .col-marca   { width: 120px; }
+        .col-ubic    { width: 150px; }
+        .col-estado  { width: 90px; }
+        .col-puertos { width: 80px; }
+        .col-patrim  { width: 80px; }
+        .col-u       { width: 40px; }
+        .col-desde   { width: 90px; }
+
+        /* Chips de filtro en panel inventario */
+        .filter-chips-inv {
+            padding: 0 1rem 0.75rem;
+            display: flex;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+        }
+
+        /* Form-row de 3 columnas iguales */
+        .form-row-3col {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+
+        /* Sección de asignación de servicio (oculta por defecto) */
+        .asig-wrap-hidden {
+            display: none;
+        }
+
+        /* Fila de acciones en modal-footer */
+        .flex-row-gap {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        /* Botones rápidos de Gist ocultos por defecto */
+        .gist-quick-hidden {
+            display: none;
+        }
+
+        /* Enlace de Gist con ícono pequeño */
+        .gist-link-icon {
+            width: 14px;
+            height: 14px;
+        }
+
+        /* Modal footer en columna con gap */
+        .modal-footer-col-gap {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        /* Fila de botones dentro del modal-footer-col-gap */
+        .modal-footer-btn-row {
+            display: flex;
+            gap: 0.5rem;
+            width: 100%;
+        }
+
+        /* Ícono grande en dropzone */
+        .dropzone-icon {
+            width: 32px;
+            height: 32px;
+            opacity: 0.4;
+        }
+
+        /* Input file oculto */
+        .input-hidden {
+            display: none;
+        }
+
+        /* Botón de "Restablecer" con color rojo */
+        .btn-danger-text {
+            color: var(--c-red);
+        }
+
+        /* Ícono rojo dentro del botón de restablecer */
+        .icon-danger {
+            color: var(--c-red);
         }
