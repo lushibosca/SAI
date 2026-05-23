@@ -19,7 +19,7 @@
     function setDarkMode(isActive) {
         try { localStorage.setItem(STORAGE_KEY_DARK_MODE, isActive ? '1' : '0'); } 
         catch (e) {}
-    }
+    } 
 
     function renderTheme(isDark) {
         if (isDark) document.documentElement.classList.add('dark-mode');
