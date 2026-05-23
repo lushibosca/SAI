@@ -13,12 +13,14 @@
     --c-green: rgba(76, 172, 140, 1);
     --c-purple: rgba(129, 76, 172, 1);
     --c-red: rgba(220, 53, 69, 1);
+    --c-orange: rgba(235, 119, 52, 1);
 
     /* Fondos semánticos para los iconos */
     --c-blue-bg: rgba(76, 114, 172, 0.12);
     --c-green-bg: rgba(76, 172, 140, 0.12);
     --c-purple-bg: rgba(129, 76, 172, 0.12);
     --c-red-bg: rgba(220, 53, 69, 0.12);
+    --c-orange-bg: rgba(235, 119, 52, 0.12);
 
     --shadow: 0 4px 12px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.02);
     --shadow-hover: 0 12px 24px rgba(0, 0, 0, 0.08), 0 4px 8px rgba(0, 0, 0, 0.04);
@@ -199,10 +201,14 @@ body {
 }
 
 /* --- Colores dinámicos por módulo --- */
-/* Definimos las variables temáticas en la tarjeta padre */
 .card-blue {
     --theme-color: var(--c-blue);
     --theme-bg: var(--c-blue-bg);
+}
+
+.card-orange {
+    --theme-color: var(--c-orange);
+    --theme-bg: var(--c-orange-bg);
 }
 
 .card-green {
@@ -258,6 +264,10 @@ html.dark-mode .app-card:focus-visible {
     animation-delay: 0.20s;
 }
 
+.app-card:nth-child(5) {
+    animation-delay: 0.25s;
+}
+
 .app-card.exiting {
     animation: fadeOutDown 0.4s cubic-bezier(0.25, 1, 0.5, 1) both;
     pointer-events: none;
@@ -281,6 +291,7 @@ html.dark-mode .app-card:focus-visible {
         opacity: 0;
         translate: 0 20px;
     }
+
     to {
         opacity: 1;
         translate: 0 0;
