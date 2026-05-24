@@ -7,21 +7,24 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self';
                script-src 'self';
                style-src 'self';
-               img-src 'self' data:;
-               font-src 'self' data:;
-               connect-src 'self' https://api.github.com
+               img-src 'self';
+               font-src 'self';
+               connect-src 'self' https://api.github.com https://gist.githubusercontent.com;
                object-src 'none';
                base-uri 'self';
                form-action 'self';
+               frame-ancestors 'self';
                upgrade-insecure-requests;">
   <meta name="referrer" content="no-referrer">
   <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/svg+xml" href="./icon.svg">
   <script src="./flash.js"></script>
   <link rel="stylesheet" href="./styles.css">
   <script src="./app.js" defer></script>
+
   <title>Licencias</title>
 
   <svg class="svg-sprite" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -687,7 +690,7 @@
           </button>
           <a class="icon-btn gist-eye-btn icon-link"
             href="https://github.com/settings/tokens/new?description=Licencias+sync&scopes=gist" target="_blank"
-            title="Crear token en GitHub">
+            rel="noopener noreferrer" title="Crear token en GitHub">
             <svg class="icon">
               <use href="#icon-external-link" />
             </svg>
@@ -701,7 +704,8 @@
         <div class="gist-input-row">
           <input type="text" id="gist-id" placeholder="Dejar vacío para crear uno nuevo" autocomplete="off"
             spellcheck="false">
-          <a id="gist-link-btn" class="icon-btn gist-eye-btn icon-link" target="_blank" title="Abrir en GitHub">
+          <a id="gist-link-btn" class="icon-btn gist-eye-btn icon-link" target="_blank" rel="noopener noreferrer"
+            title="Abrir en GitHub">
             <svg class="icon">
               <use href="#icon-external-link" />
             </svg>
@@ -787,7 +791,7 @@
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 260515.0017
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 260523.2154
     // ====================================================================
     
      - CAMBIOS:

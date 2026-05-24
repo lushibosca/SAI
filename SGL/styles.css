@@ -37,15 +37,11 @@
         --row-h: 35px;
     }
 
-    html.dark-mode {
-        background-color: #131314;
-    }
-
     body.dark-mode,
     html.dark-mode body {
         --bg-body: #131314;
         --bg-card: #1e1f20;
-        --bg-header: #131314f6;
+        --bg-header: #131314;
         --text-main: #e3e3e3;
         --text-muted: #b4b4b4;
         --border: #333131;
@@ -190,7 +186,7 @@
         overflow: auto;
         width: 100%;
         height: auto;
-        max-height: 75vh;
+        max-height: 200vh;
         cursor: default;
         user-select: none;
         border-radius: var(--radius);
@@ -987,7 +983,8 @@
         background: #bfcfe8 !important;
     }
 
-    body.dark-mode .person-row.row-selected .sticky-left {
+    body.dark-mode .person-row.row-selected .sticky-left,
+    html.dark-mode body .person-row.row-selected .sticky-left {
         background: #2a3448 !important;
     }
 

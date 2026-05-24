@@ -73,7 +73,26 @@ const S = (function () {
         if (typeof str !== 'string') return '';
         return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
-    return { SECURITY_LIMITS, sanitizeString, escapeHTML, validarFechaSegura, calcularHashSHA256, validarPersonaSegura, validarVacationKey, fechaLocalISO };
+
+    // Normalización sin tildes, minúsculas — reutilizada en búsquedas, deduplicación y combos
+    function norm(str) {
+        if (typeof str !== 'string') return '';
+        return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    }
+
+    // Normaliza el campo area de una persona a array siempre (legacy: podía ser string)
+    function toAreaArray(area) {
+        if (Array.isArray(area)) return area;
+        return area ? [area] : [];
+    }
+
+    // Fecha de hoy en formato ISO local YYYY-MM-DD (sin conversión UTC)
+    function fechaHoyLocal() {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
+    return { SECURITY_LIMITS, sanitizeString, escapeHTML, validarFechaSegura, calcularHashSHA256, validarPersonaSegura, validarVacationKey, fechaLocalISO, norm, toAreaArray, fechaHoyLocal };
 })();
 
 
@@ -175,7 +194,7 @@ const Areas = (function () {
         const dropdown = document.getElementById(prefix + '-dropdown');
         if (!dropdown) return;
         const state = _comboGetState(prefix);
-        const norm = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+        const norm = S.norm;
         const fv = norm(filterVal || '');
         const sorted = [..._areas].sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
         const filtered = fv ? sorted.filter(a => norm(a).includes(fv)) : sorted;
@@ -266,8 +285,7 @@ const Areas = (function () {
         if (state.highlighted >= 0 && opts[state.highlighted]) {
             target = opts[state.highlighted].dataset.area;
         } else if (val) {
-            const norm = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-            target = _areas.find(a => norm(a) === norm(val)) || (opts[0] ? opts[0].dataset.area : null);
+            target = _areas.find(a => S.norm(a) === S.norm(val)) || (opts[0] ? opts[0].dataset.area : null);
         } else if (opts.length === 1) {
             target = opts[0].dataset.area;
         }
@@ -346,6 +364,20 @@ const Data = (function () {
     let people = [], vacations = {}, config = { defSummer: 30, defWinter: 15, sStart: 11, sEnd: 2, scrollSpeed: 3 };
     const LS_KEY = `${APP_KEY}_data_v1`;
 
+    // Índice pid → Set<date> para evitar iterar Object.keys(vacations) por persona en cada render
+    const _vacIdx = new Map();
+
+    function _rebuildVacIdx() {
+        _vacIdx.clear();
+        for (const key of Object.keys(vacations)) {
+            const dash = key.indexOf('-');
+            const pid = key.slice(0, dash);
+            const date = key.slice(dash + 1);
+            if (!_vacIdx.has(pid)) _vacIdx.set(pid, new Set());
+            _vacIdx.get(pid).add(date);
+        }
+    }
+
     function persistir() {
         try { localStorage.setItem(LS_KEY, JSON.stringify({ people, vacations, config })); } catch (e) { console.warn('localStorage no disponible:', e); }
     }
@@ -354,6 +386,7 @@ const Data = (function () {
         people = db.people || [];
         vacations = db.vacations || {};
         config = { ...{ defSummer: 30, defWinter: 15, sStart: 11, sEnd: 2, scrollSpeed: 3 }, ...db.config };
+        _rebuildVacIdx();
         Gantt.render();
     }
 
@@ -373,109 +406,98 @@ const Data = (function () {
 
     function notifyChange() { if (!_loaded) return; FileIO.markDirty(true); persistir(); GistSync.subirAuto(); }
 
+    // Devuelve la persona que colisiona con `name` (tokens subconjunto de otro), ignorando `excludeId`
+    function _findNameCollision(name, excludeId) {
+        const tokenize = s => S.norm(s).split(/\s+/).filter(t => t.length > 0);
+        const newSet = new Set(tokenize(name));
+        return people.find(x => {
+            if (excludeId !== undefined && x.id == excludeId) return false;
+            const exSet = new Set(tokenize(x.name));
+            return [...newSet].every(t => exSet.has(t)) || [...exSet].every(t => newSet.has(t));
+        }) || null;
+    }
+
+    function _saveEditPerson(editId) {
+        const name = S.sanitizeString(document.getElementById('ep-name').value.trim(), 100);
+        if (!name) return UI.toast("Nombre requerido", "info");
+        const p = people.find(x => x.id == editId);
+        if (!p) return;
+
+        const tokenize = s => S.norm(s).split(/\s+/).filter(t => t.length > 0);
+        if (tokenize(name).length < 2) return UI.toast(`"${name}": ingresá al menos nombre y apellido`, "error");
+        const collision = _findNameCollision(name, editId);
+        if (collision) return UI.toast(`"${name}": similar a "${collision.name}"`, "error");
+
+        const year = parseInt(document.getElementById('ep-year-select').value);
+        const useCustomLimits = document.getElementById('ep-custom-limits').classList.contains('active');
+        const useCustomSeason = document.getElementById('ep-custom-season').classList.contains('active');
+        const areas = Areas.getSelected('ep-area').map(a => S.sanitizeString(a, 60)).filter(a => a);
+
+        const prevYearCfg = (p.years && p.years[year]) ? { ...p.years[year] } : undefined;
+        let newYearCfg = undefined;
+        if (useCustomLimits || useCustomSeason) {
+            newYearCfg = {};
+            if (useCustomLimits) {
+                newYearCfg.summer = parseInt(document.getElementById('ep-summer').value) || 0;
+                newYearCfg.winter = parseInt(document.getElementById('ep-winter').value) || 0;
+                newYearCfg.unlimited = document.getElementById('ep-unlimited').classList.contains('active');
+            }
+            if (useCustomSeason) {
+                newYearCfg.sStart = parseInt(document.getElementById('ep-sStart').value);
+                newYearCfg.sEnd = parseInt(document.getElementById('ep-sEnd').value);
+            }
+        }
+
+        const prevAreas = S.toAreaArray(p.area);
+        const yearCfgChanged = JSON.stringify(prevYearCfg) !== JSON.stringify(newYearCfg);
+        const changed = p.name !== name || JSON.stringify(prevAreas.sort()) !== JSON.stringify([...areas].sort()) || yearCfgChanged;
+        if (!changed) { UI.closeModals(); UI.toast("Sin cambios", "info"); return; }
+
+        Historial.empujar(`Editar persona "${p.name}"`);
+        p.name = name;
+        if (areas.length) p.area = areas; else delete p.area;
+        if (!p.years) p.years = {};
+        if (newYearCfg) p.years[year] = newYearCfg;
+        else delete p.years[year];
+        if (Object.keys(p.years).length === 0) delete p.years;
+
+        notifyChange(); UI.closeModals(); Gantt.render();
+        UI.toast(yearCfgChanged ? "✓ Cambios guardados · Configuración de año actualizada" : "✓ Cambios guardados", "success");
+    }
+
+    function _saveNewPerson() {
+        const rawName = document.getElementById('p-name').value;
+        const areas = Areas.getSelected('p-area').map(a => S.sanitizeString(a, 60)).filter(a => a);
+        const names = rawName.split(',').map(n => n.trim()).filter(n => n.length > 0);
+        if (!names.length) return UI.toast("Falta el nombre", "info");
+
+        const tokenize = s => S.norm(s).split(/\s+/).filter(t => t.length > 0);
+        const agregados = [], rechazados = [];
+
+        for (const name of names) {
+            if (tokenize(name).length < 2) { rechazados.push({ name, reason: 'ingresá al menos nombre y apellido' }); continue; }
+            const collision = _findNameCollision(name);
+            if (collision) { rechazados.push({ name, reason: `similar a "${collision.name}"` }); continue; }
+            agregados.push(name);
+        }
+
+        rechazados.forEach(r => UI.toast(`✗ "${r.name}": ${r.reason}`, 'error'));
+        if (agregados.length) {
+            Historial.empujar(agregados.length > 1 ? `Agregar ${agregados.length} personas` : `Agregar "${agregados[0]}"`);
+            agregados.forEach((name, i) => {
+                const persona = { id: Date.now() + i, name, summer: config.defSummer, winter: config.defWinter, unlimited: false };
+                if (areas.length) persona.area = areas;
+                people.push(persona);
+            });
+            notifyChange(); UI.closeModals(); Gantt.render();
+            UI.toast(agregados.length > 1 ? `✓ ${agregados.length} personas agregadas` : `✓ ${agregados[0]} agregado`, "success");
+        }
+    }
+
     function savePerson() {
         const isEdit = document.getElementById('modal-edit-person').classList.contains('show');
         const editId = document.getElementById('modal-edit-person')?.dataset.id;
-
-        if (isEdit) {
-            const name = S.sanitizeString(document.getElementById('ep-name').value.trim(), 100);
-            if (!name) return UI.toast("Nombre requerido", "info");
-            const p = people.find(x => x.id == editId);
-            if (!p) return;
-
-            // Mismas validaciones que al agregar
-            const norm = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-            const tokenize = s => norm(s).split(/\s+/).filter(t => t.length > 0);
-            const tokens = tokenize(name);
-            if (tokens.length < 2) return UI.toast(`"${name}": ingresá al menos nombre y apellido`, "error");
-            const newSet = new Set(tokens);
-            const collision = people.find(x => {
-                if (x.id == editId) return false; // ignorar la persona que se está editando
-                const exSet = new Set(tokenize(x.name));
-                return [...newSet].every(t => exSet.has(t)) || [...exSet].every(t => newSet.has(t));
-            });
-            if (collision) return UI.toast(`"${name}": similar a "${collision.name}"`, "error");
-
-            const year = parseInt(document.getElementById('ep-year-select').value);
-            const useCustomLimits = document.getElementById('ep-custom-limits').classList.contains('active');
-            const useCustomSeason = document.getElementById('ep-custom-season').classList.contains('active');
-            const areas = Areas.getSelected('ep-area').map(a => S.sanitizeString(a, 60)).filter(a => a);
-
-            // Construir config del año
-            const prevYearCfg = (p.years && p.years[year]) ? { ...p.years[year] } : undefined;
-            let newYearCfg = undefined;
-            if (useCustomLimits || useCustomSeason) {
-                newYearCfg = {};
-                if (useCustomLimits) {
-                    newYearCfg.summer = parseInt(document.getElementById('ep-summer').value) || 0;
-                    newYearCfg.winter = parseInt(document.getElementById('ep-winter').value) || 0;
-                    newYearCfg.unlimited = document.getElementById('ep-unlimited').classList.contains('active');
-                }
-                if (useCustomSeason) {
-                    newYearCfg.sStart = parseInt(document.getElementById('ep-sStart').value);
-                    newYearCfg.sEnd = parseInt(document.getElementById('ep-sEnd').value);
-                }
-            }
-
-            const prevAreas = Array.isArray(p.area) ? p.area : (p.area ? [p.area] : []);
-            const yearCfgChanged = JSON.stringify(prevYearCfg) !== JSON.stringify(newYearCfg);
-            const changed = p.name !== name || JSON.stringify(prevAreas.sort()) !== JSON.stringify([...areas].sort()) || yearCfgChanged;
-            if (!changed) { UI.closeModals(); UI.toast("Sin cambios", "info"); return; }
-
-            Historial.empujar(`Editar persona "${p.name}"`);
-            p.name = name;
-            if (areas.length) p.area = areas; else delete p.area;
-            if (!p.years) p.years = {};
-            if (newYearCfg) p.years[year] = newYearCfg;
-            else delete p.years[year];
-            if (Object.keys(p.years).length === 0) delete p.years;
-
-            notifyChange(); UI.closeModals(); Gantt.render();
-            UI.toast(yearCfgChanged ? "✓ Cambios guardados · Configuración de año actualizada" : "✓ Cambios guardados", "success");
-        } else {
-            const rawName = document.getElementById('p-name').value;
-            const areas = Areas.getSelected('p-area').map(a => S.sanitizeString(a, 60)).filter(a => a);
-            const names = rawName.split(',').map(n => n.trim()).filter(n => n.length > 0);
-            if (!names.length) return UI.toast("Falta el nombre", "info");
-
-            // Normaliza igual que la búsqueda: sin tildes, minúsculas
-            const norm = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-            const tokenize = s => norm(s).split(/\s+/).filter(t => t.length > 0);
-            const existingTokenSets = people.map(p => new Set(tokenize(p.name)));
-
-            const agregados = [], rechazados = [];
-            for (const name of names) {
-                const tokens = tokenize(name);
-                // Mínimo 2 tokens: nombre + apellido
-                if (tokens.length < 2) {
-                    rechazados.push({ name, reason: 'ingresá al menos nombre y apellido' });
-                    continue;
-                }
-                // Duplicado inteligente: denegado si los tokens de uno son subconjunto del otro
-                const newSet = new Set(tokens);
-                const collision = people.find((p, i) => {
-                    const exSet = existingTokenSets[i];
-                    return [...newSet].every(t => exSet.has(t)) || [...exSet].every(t => newSet.has(t));
-                });
-                if (collision) {
-                    rechazados.push({ name, reason: `similar a "${collision.name}"` });
-                    continue;
-                }
-                agregados.push(name);
-            }
-
-            rechazados.forEach(r => UI.toast(`✗ "${r.name}": ${r.reason}`, 'error'));
-            if (agregados.length) {
-                Historial.empujar(agregados.length > 1 ? `Agregar ${agregados.length} personas` : `Agregar "${agregados[0]}"`);
-                agregados.forEach((name, i) => {
-                    const persona = { id: Date.now() + i, name, summer: config.defSummer, winter: config.defWinter, unlimited: false };
-                    if (areas.length) persona.area = areas;
-                    people.push(persona);
-                });
-                notifyChange(); UI.closeModals(); Gantt.render();
-                UI.toast(agregados.length > 1 ? `✓ ${agregados.length} personas agregadas` : `✓ ${agregados[0]} agregado`, "success");
-            }
-        }
+        if (isEdit) _saveEditPerson(editId); else _saveNewPerson();
     }
 
     function deletePerson() {
@@ -521,7 +543,15 @@ const Data = (function () {
 
     function setVacation(pid, date, val) {
         const key = `${pid}-${date}`;
-        if (val) vacations[key] = true; else delete vacations[key];
+        const pidStr = String(pid);
+        if (val) {
+            vacations[key] = true;
+            if (!_vacIdx.has(pidStr)) _vacIdx.set(pidStr, new Set());
+            _vacIdx.get(pidStr).add(date);
+        } else {
+            delete vacations[key];
+            _vacIdx.get(pidStr)?.delete(date);
+        }
     }
 
     function isVacation(pid, d) { return vacations[`${pid}-${d}`]; }
@@ -544,18 +574,20 @@ const Data = (function () {
 
     function getStatus(p, year) {
         const today = fechaHoyLocal();
-        if (vacations[`${p.id}-${today}`]) return { text: "En curso", cls: "curso" };
+        const pidStr = String(p.id);
+        const dates = _vacIdx.get(pidStr);
+        if (dates?.has(today)) return { text: "En curso", cls: "curso" };
         const lim = getYearConfig(p, year);
         if (lim.unlimited) return { text: "Libre", cls: "libre" };
         let taken_s = 0, taken_w = 0;
-        Object.keys(vacations).forEach(k => {
-            if (!k.startsWith(p.id + '-')) return;
-            const datePart = k.split('-').slice(1).join('-');
-            if (parseInt(datePart.split('-')[0]) !== year) return;
-            if (datePart <= today) {
-                if (getSeason(datePart, p) === 'summer') taken_s++; else taken_w++;
+        if (dates) {
+            for (const date of dates) {
+                if (parseInt(date.slice(0, 4)) !== year) continue;
+                if (date <= today) {
+                    if (getSeason(date, p) === 'summer') taken_s++; else taken_w++;
+                }
             }
-        });
+        }
         const balance = (lim.summer + lim.winter) - (taken_s + taken_w);
         return (balance > 0) ? { text: "Pendiente", cls: "pendiente" } : { text: "Completa", cls: "completa" };
     }
@@ -572,16 +604,13 @@ const Data = (function () {
 
     function getUsedCounts(p, year) {
         let sUsed = 0, wUsed = 0;
-        Object.keys(vacations).forEach(k => {
-            if (k.startsWith(p.id + '-')) {
-                const datePart = k.split('-').slice(1).join('-');
-                if (year !== undefined) {
-                    const keyYear = parseInt(datePart.split('-')[0]);
-                    if (keyYear !== year) return;
-                }
-                if (getSeason(datePart, p) === 'summer') sUsed++; else wUsed++;
+        const dates = _vacIdx.get(String(p.id));
+        if (dates) {
+            for (const date of dates) {
+                if (year !== undefined && parseInt(date.slice(0, 4)) !== year) continue;
+                if (getSeason(date, p) === 'summer') sUsed++; else wUsed++;
             }
-        });
+        }
         return { s: sUsed, w: wUsed };
     }
 
@@ -621,8 +650,7 @@ const Data = (function () {
                 name: S.sanitizeString(p.name, 100),
             };
             if (p.area !== undefined) {
-                const rawArea = Array.isArray(p.area) ? p.area : [p.area];
-                const areasClean = rawArea.map(a => S.sanitizeString(String(a), 60)).filter(a => a);
+                const areasClean = S.toAreaArray(p.area).map(a => S.sanitizeString(String(a), 60)).filter(a => a);
                 if (areasClean.length) persona.area = areasClean;
             }
             if (p.years && typeof p.years === 'object') {
@@ -782,7 +810,7 @@ const Data = (function () {
     }
 
     function vacacionesDe(pid) {
-        return Object.keys(vacations).filter(k => k.startsWith(pid + '-')).map(k => k.split('-').slice(1).join('-'));
+        return [...(_vacIdx.get(String(pid)) || [])];
     }
 
     return { loadFromObj, notifyChange, setLoaded: () => { _loaded = true; }, people: () => people, config: () => config, vacations: () => vacations, isVacation, setVacation, getStatus, getRealTimeStats, getLimits, getYearConfig, getSeason, getUsedCounts, savePerson, deletePerson, saveConfig, exportData, importData, cargarDesdeLocalStorage, vacacionesDe };
@@ -939,11 +967,22 @@ const Gantt = (function () {
     }
 
     function generateDateRange() {
+        const todayStr = fechaHoyLocal();
         dateRange = [];
         const start = new Date(currentViewYear, 0, 1);
         const end = new Date(currentViewYear, 11, 31);
         let curr = new Date(start);
-        while (curr <= end) { dateRange.push(new Date(curr)); curr.setDate(curr.getDate() + 1); }
+        while (curr <= end) {
+            const d = new Date(curr);
+            const dStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            const dow = d.getDay();
+            let dayType = 'workday';
+            if (dow === 0 || dow === 6) dayType = 'weekend';
+            if (Holidays.isHoliday(dStr) && DAY_PRIORITY.HOLIDAY > DAY_PRIORITY[dayType.toUpperCase()]) dayType = 'holiday';
+            if (dStr === todayStr) dayType = 'today';
+            dateRange.push({ date: d, dateStr: dStr, dayType });
+            curr.setDate(curr.getDate() + 1);
+        }
     }
 
     function changeYear(y, afterRender) {
@@ -984,7 +1023,7 @@ const Gantt = (function () {
 
         let currentMonth = -1, colSpan = 0, lastCell = null;
         let isFirstMonth = true;
-        dateRange.forEach(d => {
+        dateRange.forEach(({ date: d, dateStr }) => {
             if (d.getMonth() !== currentMonth) {
                 if (lastCell) lastCell.style.gridColumn = `span ${colSpan}`;
                 currentMonth = d.getMonth(); colSpan = 1;
@@ -994,8 +1033,7 @@ const Gantt = (function () {
                 isFirstMonth = false;
                 const mName = d.toLocaleDateString('es-ES', { month: 'long' });
                 cellMonth.textContent = mName.charAt(0).toUpperCase() + mName.slice(1);
-                const monthFirstDate = d.toISOString().split('T')[0];
-                cellMonth.onclick = () => togglePanoramicMode(monthFirstDate);
+                cellMonth.onclick = () => togglePanoramicMode(dateStr);
 
                 rowMonths.appendChild(cellMonth);
                 lastCell = cellMonth;
@@ -1052,10 +1090,8 @@ const Gantt = (function () {
         cornerWk.classList.add('gantt-corner-wk');
         rowWeekdays.appendChild(cornerWk);
 
-        dateRange.forEach((d, i) => {
+        dateRange.forEach(({ date: d, dateStr: dStrWd, dayType }, i) => {
             const cellD = document.createElement('div');
-            const dStrWd = d.toISOString().split('T')[0];
-            const dayType = getDayType(d, dStrWd);
 
             cellD.className = `gantt-cell day-name-header type-${dayType}${d.getDate() === 1 && i > 0 ? ' month-start' : ''}`;
             cellD.textContent = d.toLocaleDateString('es-ES', { weekday: 'short' }).replace('.', '').toUpperCase();
@@ -1084,10 +1120,8 @@ const Gantt = (function () {
         _cnSvg.appendChild(_cnUse); _cnBtn.appendChild(_cnSvg); cornerNum.appendChild(_cnSpan); cornerNum.appendChild(_cnBtn);
         rowDays.appendChild(cornerNum);
 
-        dateRange.forEach((d, i) => {
+        dateRange.forEach(({ date: d, dateStr: dStrDn, dayType }, i) => {
             const cellN = document.createElement('div');
-            const dStrDn = d.toISOString().split('T')[0];
-            const dayType = getDayType(d, dStrDn);
 
             cellN.className = `gantt-cell day-num-header type-${dayType}${d.getDate() === 1 && i > 0 ? ' month-start' : ''}`;
             cellN.textContent = d.getDate();
@@ -1107,7 +1141,7 @@ const Gantt = (function () {
 
         // 4. Filas de Personas (Data Rows)
         [...Data.people()].sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' })).forEach(p => {
-            const areas = Array.isArray(p.area) ? p.area : (p.area ? [p.area] : []);
+            const areas = S.toAreaArray(p.area);
             const rowP = document.createElement('div');
             rowP.dataset.name = p.name.toLowerCase();
             rowP.dataset.pid = p.id;
@@ -1144,10 +1178,8 @@ const Gantt = (function () {
             cellName.oncontextmenu = (e) => { e.preventDefault(); CtxMenu.open(e, p.id, rowP); };
             rowP.appendChild(cellName);
 
-            dateRange.forEach((d, i) => {
+            dateRange.forEach(({ date: d, dateStr: dStr, dayType }, i) => {
                 const cellDay = document.createElement('div');
-                const dStr = d.toISOString().split('T')[0];
-                const dayType = getDayType(d, dStr);
 
                 // Importante: usamos nuestra clase base gantt-cell pero con la variante day-cell (display block en vez de flex)
                 cellDay.className = `gantt-cell day-cell type-${dayType}${d.getDate() === 1 && i > 0 ? ' month-start' : ''}`;
@@ -1218,7 +1250,7 @@ const Gantt = (function () {
     }
 
     function filterRows(val) {
-        const normalize = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+        const normalize = S.norm;
         const term = normalize(val);
         const tokens = term.split(/\s+/).filter(t => t.length > 0);
         const allTokensMatch = (target) => tokens.every(t => target.includes(t));
@@ -1465,7 +1497,7 @@ const Gantt = (function () {
                 if (monthDate) {
                     const yearMonth = monthDate.substring(0, 7);
                     const allDayHeaders = gridContainer.querySelectorAll('.header-days .day-num-header');
-                    const targetIdx = dateRange.findIndex(d => d.toISOString().split('T')[0].startsWith(yearMonth));
+                    const targetIdx = dateRange.findIndex(({ dateStr }) => dateStr.startsWith(yearMonth));
                     if (targetIdx >= 0 && allDayHeaders[targetIdx]) {
                         containerScroll.style.scrollBehavior = 'auto';
                         containerScroll.scrollLeft = allDayHeaders[targetIdx].offsetLeft - 220;
@@ -1530,11 +1562,8 @@ const Gantt = (function () {
     function _updateLockUI() {
         document.querySelectorAll('.person-row').forEach(row => row.classList.remove('gantt-unlocked'));
         _unlockedIds.forEach(id => {
-            const person = Data.people().find(p => p.id === id);
-            if (person) {
-                const row = document.querySelector(`.person-row[data-name="${person.name.toLowerCase()}"]`);
-                if (row) row.classList.add('gantt-unlocked');
-            }
+            const row = document.querySelector(`.person-row[data-pid="${id}"]`);
+            if (row) row.classList.add('gantt-unlocked');
         });
     }
 
@@ -1633,7 +1662,7 @@ const UI = (function () {
     function editPerson(id) {
         const p = Data.people().find(x => x.id == id);
         $('ep-name').value = p.name;
-        const pAreas = Array.isArray(p.area) ? p.area : (p.area ? [p.area] : []);
+        const pAreas = S.toAreaArray(p.area);
         Areas.populateSelect('ep-area', pAreas);
         $('modal-edit-person').dataset.id = id;
         const h3 = document.querySelector('#modal-edit-person h3'); if (h3) h3.textContent = p.name;
@@ -2192,9 +2221,8 @@ const Holidays = (function () {
     };
 })();
 
-function fechaHoyLocal() {
-    const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
+// Alias corto — la implementación vive en S.fechaHoyLocal()
+const fechaHoyLocal = S.fechaHoyLocal;
 
 // --- HISTORIAL MODULE (undo/redo) ---
 const Historial = (function () {
@@ -2266,6 +2294,38 @@ const GistSync = (function () {
     let _debounceTimer = null;
     let _subiendo = false;
 
+    // ── Valida completamente el payload remoto antes de cualquier importación ──
+    function _validarPayloadRemoto(raw) {
+        if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return 'Formato de payload inválido';
+        if (!Array.isArray(raw.people)) return 'El campo "people" no es un array';
+        if (raw.people.length > S.SECURITY_LIMITS.MAX_PERSONAS) return `El payload supera el límite de ${S.SECURITY_LIMITS.MAX_PERSONAS} personas`;
+        for (const p of raw.people) {
+            if (!S.validarPersonaSegura(p)) return `Persona con datos inválidos (id: ${p?.id ?? 'desconocido'})`;
+        }
+        if (raw.vacations !== undefined) {
+            if (typeof raw.vacations !== 'object' || Array.isArray(raw.vacations)) return 'El campo "vacations" no es un objeto';
+            for (const k of Object.keys(raw.vacations)) {
+                if (!S.validarVacationKey(k)) return `Clave de vacación inválida: "${k}"`;
+            }
+        }
+        if (raw.config !== undefined && (typeof raw.config !== 'object' || Array.isArray(raw.config))) {
+            return 'El campo "config" no es un objeto';
+        }
+        if (raw.version !== undefined && raw.version !== S.SECURITY_LIMITS.SCHEMA_VERSION) {
+            return `Versión de esquema incompatible (esperada: ${S.SECURITY_LIMITS.SCHEMA_VERSION}, recibida: ${raw.version})`;
+        }
+        return null;
+    }
+
+    // ── Convierte códigos HTTP en mensajes amigables sin revelar infraestructura ──
+    function _mensajeErrorHTTP(status) {
+        if (status === 401 || status === 403) return 'Token inválido o sin permisos suficientes';
+        if (status === 404) return 'Gist no encontrado. Verificá el ID';
+        if (status === 422) return 'Datos rechazados por GitHub. Verificá el contenido';
+        if (status >= 500) return 'El servicio de GitHub no está disponible. Intentá más tarde';
+        return 'Error de conexión. Verificá tu acceso a internet';
+    }
+
     function _cargarCfg() {
         try {
             const raw = localStorage.getItem(CFG_KEY);
@@ -2276,6 +2336,42 @@ const GistSync = (function () {
 
     function _guardarCfg() {
         try { localStorage.setItem(CFG_KEY, JSON.stringify(_cfg)); } catch (_) { }
+    }
+
+    // ── Detección de cambios compartida (config, personas, vacs nuevas) ──
+    function _detectarCambiosBasico(remotoRaw) {
+        const localConfig = Data.config();
+        const localPeople = Data.people();
+        const localVacs = Data.vacations();
+        const configCambio = JSON.stringify(remotoRaw.config) !== JSON.stringify(localConfig);
+        const personasDiff = (remotoRaw.people || []).filter(p => {
+            const local = localPeople.find(lp => String(lp.id) === String(p.id));
+            if (!local) return S.validarPersonaSegura(p);
+            return JSON.stringify(p.years) !== JSON.stringify(local.years) ||
+                p.name !== local.name ||
+                JSON.stringify(p.area) !== JSON.stringify(local.area);
+        });
+        const vacsNuevas = Object.keys(remotoRaw.vacations || {}).filter(k =>
+            S.validarVacationKey(k) && !localVacs[k]
+        );
+        return { configCambio, personasDiff, vacsNuevas };
+    }
+
+    // ── Arma el modal de novedades y lo muestra ──────────
+    // chips: array de { label, count } — el llamador decide qué mostrar
+    // onOk: callback al confirmar
+    // delay: ms antes de mostrar (0 = inmediato)
+    function _mostrarModalNovedades(chips, onOk, delay = 0) {
+        const detalle = document.getElementById('gist-novedades-detalle');
+        if (detalle) {
+            detalle.innerHTML = chips.map(c =>
+                `<div class="gist-novedades-chip"><span class="gist-novedades-chip-label">${c.label}</span><span class="gist-novedades-chip-count">${c.count}</span></div>`
+            ).join('');
+        }
+        const btnOk = document.getElementById('gist-novedades-ok');
+        if (btnOk) btnOk.onclick = onOk;
+        const show = () => document.getElementById('modal-gist-novedades')?.classList.add('show');
+        if (delay) setTimeout(show, delay); else show();
     }
 
     // ── Spinner en el botón de config principal ──────────
@@ -2439,7 +2535,7 @@ const GistSync = (function () {
                 });
             }
 
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            if (!res.ok) throw new Error(_mensajeErrorHTTP(res.status));
             const data = await res.json();
 
             if (!gistId && data.id) {
@@ -2453,7 +2549,7 @@ const GistSync = (function () {
             if (!silencioso) UI.toast('Datos subidos a Gist', 'success');
 
         } catch (err) {
-            _setStatus(`Error: ${err.message}`);
+            _setStatus('Error al subir');
             if (!silencioso) UI.toast(`Error al subir: ${err.message}`, 'error');
         } finally {
             _setBusy(false);
@@ -2484,7 +2580,7 @@ const GistSync = (function () {
             if (token) headers['Authorization'] = `token ${token}`;
 
             const res = await fetch(`https://api.github.com/gists/${gistId}`, { headers });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            if (!res.ok) throw new Error(_mensajeErrorHTTP(res.status));
             const data = await res.json();
 
             const file = data.files?.[FILENAME];
@@ -2493,77 +2589,48 @@ const GistSync = (function () {
             let contenido = file.content;
             if (file.truncated) {
                 const rawOrigin = new URL(file.raw_url).hostname;
-                if (!rawOrigin.endsWith('.githubusercontent.com')) throw new Error('raw_url inválida');
+                if (!rawOrigin.endsWith('.githubusercontent.com')) throw new Error('Origen de descarga no permitido');
                 const r2 = await fetch(file.raw_url); contenido = await r2.text();
             }
 
             if (contenido.length > S.SECURITY_LIMITS.MAX_JSON_SIZE) throw new Error('El archivo del Gist excede el tamaño máximo permitido');
             const remotoRaw = JSON.parse(contenido);
-            if (!remotoRaw || !Array.isArray(remotoRaw.people)) throw new Error('Formato inválido');
 
-            // --- NUEVO PRE-CONTEO INTELIGENTE ---
-            const localConfig = Data.config();
-            const localPeople = Data.people();
-            const localVacs = Data.vacations();
+            const errorValidacion = _validarPayloadRemoto(remotoRaw);
+            if (errorValidacion) throw new Error(`Payload inválido: ${errorValidacion}`);
 
-            // 1. ¿Cambió la configuración global?
-            const configCambio = JSON.stringify(remotoRaw.config) !== JSON.stringify(localConfig);
+            const { configCambio, personasDiff, vacsNuevas } = _detectarCambiosBasico(remotoRaw);
 
-            // 2. ¿Personas nuevas o modificadas?
-            const personasNuevasOMod = (remotoRaw.people || []).filter(p => {
-                const localP = localPeople.find(lp => String(lp.id) === String(p.id));
-                if (!localP) return S.validarPersonaSegura(p);
-                return JSON.stringify(p.years) !== JSON.stringify(localP.years) ||
-                    p.name !== localP.name ||
-                    JSON.stringify(p.area) !== JSON.stringify(localP.area);
-            });
-
-            // 3. Diferencias en días (detecta tanto agregados como eliminados)
-            let vacsCambiadas = 0;
-            const remoteVacsKeys = Object.keys(remotoRaw.vacations || {}).filter(k => S.validarVacationKey(k));
+            // bajar() también detecta vacaciones eliminadas (que verificarAlAbrir no hace)
             const remoteIds = new Set((remotoRaw.people || []).map(p => String(p.id)));
-
-            const nuevasVacs = remoteVacsKeys.filter(k => !localVacs[k]);
-            vacsCambiadas += nuevasVacs.length;
-
-            const eliminadasVacs = Object.keys(localVacs).filter(k => {
+            const vacsEliminadas = Object.keys(Data.vacations()).filter(k => {
                 const pid = k.split('-')[0];
-                // Cuenta como eliminada si está en local, pero no en el gist (y la persona sí está en el gist)
-                return remoteIds.has(pid) && !remotoRaw.vacations[k];
+                return remoteIds.has(pid) && !remotoRaw.vacations?.[k];
             });
-            vacsCambiadas += eliminadasVacs.length;
+            const vacsCambiadas = vacsNuevas.length + vacsEliminadas.length;
 
-            if (!configCambio && personasNuevasOMod.length === 0 && vacsCambiadas === 0) {
+            if (!configCambio && personasDiff.length === 0 && vacsCambiadas === 0) {
                 _cfg.token = token; _cfg.gistId = gistId;
                 _cfg.lastSync = new Date().toISOString(); _guardarCfg(); _setStatusSync();
                 UI.toast('Sin cambios', 'info'); _setBusy(false); return;
             }
 
-            // Construir detalle para el modal de novedades
-            const detalle = document.getElementById('gist-novedades-detalle');
-            if (detalle) {
-                const chips = [];
-                if (configCambio) chips.push(`<div class="gist-novedades-chip"><span class="gist-novedades-chip-label">Configuración</span><span class="gist-novedades-chip-count">Dif.</span></div>`);
-                if (personasNuevasOMod.length) chips.push(`<div class="gist-novedades-chip"><span class="gist-novedades-chip-label">Personas</span><span class="gist-novedades-chip-count">${personasNuevasOMod.length} act.</span></div>`);
-                if (vacsCambiadas > 0) chips.push(`<div class="gist-novedades-chip"><span class="gist-novedades-chip-label">Licencias</span><span class="gist-novedades-chip-count">${vacsCambiadas} dif.</span></div>`);
-                detalle.innerHTML = chips.join('');
-            }
+            const chips = [];
+            if (configCambio) chips.push({ label: 'Configuración', count: 'Dif.' });
+            if (personasDiff.length) chips.push({ label: 'Personas', count: `${personasDiff.length} act.` });
+            if (vacsCambiadas > 0) chips.push({ label: 'Licencias', count: `${vacsCambiadas} dif.` });
 
-            const btnOk = document.getElementById('gist-novedades-ok');
-            if (btnOk) {
-                btnOk.onclick = () => {
-                    Historial.empujar('Sincronización híbrida desde Gist');
-                    Data.importData(remotoRaw, 'hybrid');
-                    _cfg.token = token; _cfg.gistId = gistId;
-                    _cfg.lastSync = new Date().toISOString(); _guardarCfg(); _setStatusSync();
-                    document.getElementById('modal-gist-novedades')?.classList.remove('show');
-                };
-            }
+            _mostrarModalNovedades(chips, () => {
+                Historial.empujar('Sincronización híbrida desde Gist');
+                Data.importData(remotoRaw, 'hybrid');
+                _cfg.token = token; _cfg.gistId = gistId;
+                _cfg.lastSync = new Date().toISOString(); _guardarCfg(); _setStatusSync();
+                document.getElementById('modal-gist-novedades')?.classList.remove('show');
+            });
             _setBusy(false);
-            document.getElementById('modal-gist-novedades')?.classList.add('show');
 
         } catch (err) {
-            _setStatus(`Error: ${err.message}`);
+            _setStatus('Error al bajar');
             UI.toast(`Error al bajar: ${err.message}`, 'error');
             _setBusy(false);
         }
@@ -2605,58 +2672,22 @@ const GistSync = (function () {
 
             if (contenido.length > S.SECURITY_LIMITS.MAX_JSON_SIZE) return;
             const remotoRaw = JSON.parse(contenido);
-            if (!remotoRaw || !Array.isArray(remotoRaw.people)) return;
+            if (_validarPayloadRemoto(remotoRaw) !== null) return;
 
-            // --- DETECCIÓN DE CAMBIOS INTEGRAL ---
-            const localConfig = Data.config();
-            const localPeople = Data.people();
-            const localVacs = Data.vacations();
+            const { configCambio, personasDiff, vacsNuevas } = _detectarCambiosBasico(remotoRaw);
+            if (!configCambio && !personasDiff.length && !vacsNuevas.length) return;
 
-            // 1. ¿Cambió la configuración global (temporadas/límites)?
-            const configCambio = JSON.stringify(remotoRaw.config) !== JSON.stringify(localConfig);
+            const chips = [];
+            if (configCambio) chips.push({ label: 'Configuración', count: 'Actualizar' });
+            if (personasDiff.length) chips.push({ label: 'Personas/Límites', count: `+${personasDiff.length}` });
+            if (vacsNuevas.length) chips.push({ label: 'Licencias', count: `+${vacsNuevas.length}` });
 
-            // 2. ¿Hay personas nuevas o con configuración de años (years) distinta?
-            const personasNuevas = (remotoRaw.people || []).filter(p => {
-                const localP = localPeople.find(lp => String(lp.id) === String(p.id));
-                if (!localP) return S.validarPersonaSegura(p);
-                // Si la persona existe, chequeamos si su config de años cambió
-                return JSON.stringify(p.years) !== JSON.stringify(localP.years);
-            });
-
-            // 3. ¿Hay licencias nuevas?
-            const nuevasVacs = Object.keys(remotoRaw.vacations || {}).filter(k =>
-                S.validarVacationKey(k) && !localVacs[k]
-            );
-
-            if (!configCambio && !personasNuevas.length && !nuevasVacs.length) return;
-
-            // --- CONSTRUIR MODAL DE NOVEDADES ---
-            const detalle = document.getElementById('gist-novedades-detalle');
-            if (detalle) {
-                const chips = [];
-                if (configCambio) {
-                    chips.push(`<div class="gist-novedades-chip"><span class="gist-novedades-chip-label">Configuración</span><span class="gist-novedades-chip-count">Actualizar</span></div>`);
-                }
-                if (personasNuevas.length) {
-                    chips.push(`<div class="gist-novedades-chip"><span class="gist-novedades-chip-label">Personas/Límites</span><span class="gist-novedades-chip-count">+${personasNuevas.length}</span></div>`);
-                }
-                if (nuevasVacs.length) {
-                    chips.push(`<div class="gist-novedades-chip"><span class="gist-novedades-chip-label">Licencias</span><span class="gist-novedades-chip-count">+${nuevasVacs.length}</span></div>`);
-                }
-                detalle.innerHTML = chips.join('');
-            }
-
-            const btnOk = document.getElementById('gist-novedades-ok');
-            if (btnOk) {
-                btnOk.onclick = () => {
-                    Historial.empujar('Sincronización automática desde Gist');
-                    Data.importData(remotoRaw, 'hybrid');
-                    _cfg.lastSync = new Date().toISOString(); _guardarCfg(); _setStatusSync();
-                    document.getElementById('modal-gist-novedades')?.classList.remove('show');
-                };
-            }
-
-            setTimeout(() => document.getElementById('modal-gist-novedades')?.classList.add('show'), 600);
+            _mostrarModalNovedades(chips, () => {
+                Historial.empujar('Sincronización automática desde Gist');
+                Data.importData(remotoRaw, 'hybrid');
+                _cfg.lastSync = new Date().toISOString(); _guardarCfg(); _setStatusSync();
+                document.getElementById('modal-gist-novedades')?.classList.remove('show');
+            }, 600);
 
         } catch (_) { } finally { _spinStop(); }
     }
@@ -2762,7 +2793,7 @@ const CtxMenu = (function () {
         ids.forEach(pid => {
             const p = Data.people().find(x => String(x.id) === String(pid));
             if (!p) return;
-            const current = Array.isArray(p.area) ? p.area : (p.area ? [p.area] : []);
+            const current = S.toAreaArray(p.area);
             if (!current.includes(cleanArea)) {
                 p.area = [...current, cleanArea];
                 changed++;

@@ -1,11 +1,12 @@
-const CACHE_NAME = 'licencias-260515.0018-cache';
+const CACHE_NAME = 'licencias-260523.2153-cache';
 const urlsToCache = [
   './',
   './index.html',
   './manifest.json',
   './icon.svg',
   './app.js',
-  './styles.css'
+  './styles.css',
+  './flash.js',
 ];
 
 self.addEventListener('install', event => {

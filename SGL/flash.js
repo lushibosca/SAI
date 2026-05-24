@@ -1,10 +1,9 @@
-(function () { 
-    try { 
-        // Leemos la clave exacta que usa app.js
-        if (localStorage.getItem('sgl_dark') === 'dark') { 
-            // Aplicamos al <html> porque el <body> aún no cargó
-            document.documentElement.classList.add('dark-mode'); 
-        } 
-    } catch (e) { } 
+(function () {
+    try {
+        var saved = localStorage.getItem('sgl_dark');
+        if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark-mode');
+        }
+    } catch (e) { }
 }());
 // Parche anti parpadeo blanco en modo oscuro
