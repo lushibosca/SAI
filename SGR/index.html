@@ -225,8 +225,7 @@
                         <table>
                             <thead>
                                 <tr>
-                                    <th class="col-rack">Rack</th>
-                                    <th class="col-patrim">Patrimonio</th>
+                                    <th>Patrimonio</th>
                                     <th>Marca</th>
                                     <th>Modelo</th>
                                     <th class="col-estado">Estado</th>
@@ -285,7 +284,6 @@
                     <table class="table-equal-cols">
                         <thead>
                             <tr>
-                                <th>Rack</th>
                                 <th>Patrimonio</th>
                                 <th>Marca</th>
                                 <th>Modelo</th>
@@ -343,6 +341,10 @@
                         <option value="">— Seleccioná un rack disponible —</option>
                     </select>
                 </div>
+                <div class="form-group">
+                    <label>Número de Rack <span class="required">*</span></label>
+                    <input type="text" id="servicio-numero" placeholder="ej: 0001" maxlength="20" autocomplete="off">
+                </div>
                 <div class="form-row">
                     <div class="form-group">
                         <label>Edificio</label>
@@ -378,12 +380,12 @@
             <div class="modal-body modal-body-pb">
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Número de Rack <span class="required">*</span></label>
-                        <input type="text" id="rack-numero-nuevo" placeholder="ej: 0001" maxlength="20" autocomplete="off">
+                        <label>Patrimonio <span class="required">*</span></label>
+                        <input type="text" id="rack-patrimonio-nuevo" placeholder="ej: 48491" maxlength="30" autocomplete="off">
                     </div>
                     <div class="form-group">
-                        <label>Patrimonio</label>
-                        <input type="text" id="rack-patrimonio-nuevo" placeholder="ej: 48491" maxlength="30" autocomplete="off">
+                        <label>Unidades (U) <span class="required">*</span></label>
+                        <input type="number" id="rack-unidades-nuevo" placeholder="ej: 42" min="1" max="999">
                     </div>
                 </div>
                 <div class="form-row">
@@ -399,10 +401,6 @@
                 <div class="form-group">
                     <label>Serial</label>
                     <input type="text" id="rack-serial-nuevo" placeholder="ej: SN-00123456" maxlength="80" autocomplete="off">
-                </div>
-                <div class="form-group">
-                    <label>Unidades (U)</label>
-                    <input type="number" id="rack-unidades-nuevo" placeholder="ej: 42" min="1" max="999">
                 </div>
                 <div class="form-group">
                     <label>Notas</label>
@@ -429,12 +427,12 @@
             <div class="modal-body modal-body-pb">
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Número de Rack <span class="required">*</span></label>
-                        <input type="text" id="rack-numero-editar" placeholder="ej: 0001" maxlength="20" autocomplete="off">
+                        <label>Patrimonio <span class="required">*</span></label>
+                        <input type="text" id="rack-patrimonio-editar" placeholder="ej: 48491" maxlength="30" autocomplete="off">
                     </div>
                     <div class="form-group">
-                        <label>Patrimonio</label>
-                        <input type="text" id="rack-patrimonio-editar" placeholder="ej: 48491" maxlength="30" autocomplete="off">
+                        <label>Unidades (U) <span class="required">*</span></label>
+                        <input type="number" id="rack-unidades-editar" placeholder="ej: 42" min="1" max="999">
                     </div>
                 </div>
                 <div class="form-row">
@@ -450,10 +448,6 @@
                 <div class="form-group">
                     <label>Serial</label>
                     <input type="text" id="rack-serial-editar" placeholder="ej: SN-00123456" maxlength="80" autocomplete="off">
-                </div>
-                <div class="form-group">
-                    <label>Unidades (U)</label>
-                    <input type="number" id="rack-unidades-editar" placeholder="ej: 42" min="1" max="999">
                 </div>
                 <div class="form-group">
                     <label>Notas</label>

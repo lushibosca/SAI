@@ -3104,6 +3104,22 @@
     }
 
     // Lee y trimea el value de un input por prefijo+campo
+    // Marca error y muestra toast si el campo está vacío. Retorna false si falla.
+    function _requerido(id, msg) {
+        const el = document.getElementById(id);
+        if (!el?.value?.trim()) { el?.classList.add('error'); toast(msg, 'error'); return false; }
+        return true;
+    }
+
+    // Lee y parsea los campos iniciales del form de dispositivo (tipo, mac, serial, macs)
+    function _leerFormDispositivo(prefijo) {
+        const tipo = document.getElementById(`${prefijo}-tipo`).value;
+        const macRaw = _v(prefijo, 'mac').toUpperCase();
+        const serial = _v(prefijo, 'serial');
+        const macs = macRaw ? macRaw.split(',').map(t => t.trim()).filter(Boolean) : [];
+        return { tipo, serial, macs };
+    }
+
     function _v(prefijo, campo) {
         return document.getElementById(`${prefijo}-${campo}`)?.value.trim() ?? '';
     }
@@ -4206,12 +4222,9 @@
 
         guardarNuevoDispositivo() {
             const prefijo = 'nuevo-disp';
-            const tipo = document.getElementById(`${prefijo}-tipo`).value;
-            const macRaw = document.getElementById(`${prefijo}-mac`).value.trim();
-            const serial = document.getElementById(`${prefijo}-serial`).value.trim();
-            const macs = macRaw ? macRaw.split(',').map(t => t.trim()).filter(Boolean) : [];
+            const { tipo, serial, macs } = _leerFormDispositivo(prefijo);
 
-            if (!tipo) { document.getElementById(`${prefijo}-tipo`).classList.add('error'); toast('Seleccioná un tipo', 'error'); return; }
+            if (!_requerido(`${prefijo}-tipo`, 'Seleccioná un tipo')) return;
             if (!validarCampoMAC(`${prefijo}-mac`)) return;
             if (!macs.length && !serial) {
                 document.getElementById(`${prefijo}-mac`).classList.add('error');
@@ -4377,12 +4390,9 @@
 
         async guardarEdicionDispositivo() {
             const prefijo = 'editar-disp';
-            const tipo = document.getElementById(`${prefijo}-tipo`).value;
-            const macRaw = document.getElementById(`${prefijo}-mac`).value.trim().toUpperCase();
-            const serial = document.getElementById(`${prefijo}-serial`).value.trim();
-            const macs = macRaw ? macRaw.split(',').map(t => t.trim()).filter(Boolean) : [];
+            const { tipo, serial, macs } = _leerFormDispositivo(prefijo);
 
-            if (!tipo) { document.getElementById(`${prefijo}-tipo`).classList.add('error'); toast('Seleccioná un tipo', 'error'); return; }
+            if (!_requerido(`${prefijo}-tipo`, 'Seleccioná un tipo')) return;
             if (!validarCampoMAC(`${prefijo}-mac`)) return;
             if (!macs.length && !serial) {
                 document.getElementById(`${prefijo}-mac`).classList.add('error');
@@ -4589,10 +4599,10 @@
 
         guardarNuevoGrabador() {
             const prefijo = 'nuevo-grab';
-            const descripcion = document.getElementById(`${prefijo}-nombre`).value.trim();
-            if (!descripcion) { document.getElementById(`${prefijo}-nombre`).classList.add('error'); toast('La descripción es obligatoria', 'error'); return; }
+            if (!_requerido(`${prefijo}-nombre`, 'La descripción es obligatoria')) return;
+            const descripcion = _v(prefijo, 'nombre');
+            if (!_requerido(`${prefijo}-dispositivo-id`, 'Seleccioná un dispositivo')) return;
             const dispId = document.getElementById(`${prefijo}-dispositivo-id`).value;
-            if (!dispId) { document.getElementById(`${prefijo}-dispositivo-id`).classList.add('error'); toast('Seleccioná un dispositivo', 'error'); return; }
             if (!validarCampoIP(`${prefijo}-ip`)) return;
 
             const disp = _data.dispositivos.find(x => x.id === dispId);
@@ -4673,10 +4683,10 @@
 
         guardarEdicionGrabador() {
             const prefijo = 'editar-grab';
-            const descripcion = document.getElementById(`${prefijo}-nombre`).value.trim();
-            if (!descripcion) { document.getElementById(`${prefijo}-nombre`).classList.add('error'); toast('La descripción es obligatoria', 'error'); return; }
+            if (!_requerido(`${prefijo}-nombre`, 'La descripción es obligatoria')) return;
+            const descripcion = _v(prefijo, 'nombre');
+            if (!_requerido(`${prefijo}-dispositivo-id`, 'Seleccioná un dispositivo')) return;
             const dispId = document.getElementById(`${prefijo}-dispositivo-id`).value;
-            if (!dispId) { document.getElementById(`${prefijo}-dispositivo-id`).classList.add('error'); toast('Seleccioná un dispositivo', 'error'); return; }
             if (!validarCampoIP(`${prefijo}-ip`)) return;
 
             const disp = _data.dispositivos.find(x => x.id === dispId);

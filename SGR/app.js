@@ -46,12 +46,14 @@ function _s(v, max = 200) { if (typeof v !== 'string') return ''; return v.trim(
 
 function _sanitizarRack(r) {
     if (!r || typeof r !== 'object') return null;
-    const id = _s(r.id, 32), numero = _s(r.numero, 20);
-    if (!id || !RE_ID.test(id) || !numero) return null;
+    const id = _s(r.id, 32);
+    const patrimonio = _s(r.patrimonio, 30);
+    if (!id || !RE_ID.test(id) || !patrimonio) return null;
     const estado = ESTADOS_VALIDOS.has(r.estado) ? r.estado : 'inventario';
     return {
-        id, numero, estado,
-        patrimonio: _s(r.patrimonio, 30),
+        id, estado,
+        numero: _s(r.numero, 20),
+        patrimonio,
         marca: _s(r.marca, 50),
         modelo: _s(r.modelo, 50),
         serial: _s(r.serial, 80),
@@ -295,7 +297,7 @@ const UI = {
             disponibles.map(r => `<option value="${esc(r.id)}">${esc(r.numero)}${r.marca ? ' · ' + esc(r.marca) : ''}${r.modelo ? ' · ' + esc(r.modelo) : ''}</option>`).join('');
         sel.value = '';
         sel.classList.remove('error');
-        ['servicio-edificio', 'servicio-piso', 'servicio-dependencia'].forEach(id => {
+        ['servicio-edificio', 'servicio-piso', 'servicio-dependencia', 'servicio-numero'].forEach(id => {
             const el = document.getElementById(id); if (el) { el.value = ''; el.classList.remove('error'); }
         });
         MM.abrir('modal-rack-servicio', () => { if (!isMobile()) setTimeout(() => sel.focus(), 200); });
@@ -307,7 +309,7 @@ const UI = {
             if (el) { el.value = ''; el.classList.remove('error'); }
         });
         MM.abrir('modal-rack-nuevo', () => {
-            if (!isMobile()) setTimeout(() => document.getElementById('rack-numero-nuevo')?.focus(), 200);
+            if (!isMobile()) setTimeout(() => document.getElementById('rack-patrimonio-nuevo')?.focus(), 200);
         });
     },
     cerrarNuevoRack() { MM.cerrar('modal-rack-nuevo'); },
@@ -335,35 +337,32 @@ const UI = {
 function _leerFormRack(sufijo) {
     const g = (id) => document.getElementById(`rack-${id}-${sufijo}`)?.value.trim() || '';
     return {
-        numero: g('numero'),
         patrimonio: g('patrimonio'),
         marca: g('marca'),
         modelo: g('modelo'),
         serial: g('serial'),
         unidades: parseInt(document.getElementById(`rack-unidades-${sufijo}`)?.value) || null,
         notas: g('notas'),
-        edificio: g('edificio'),
-        piso: g('piso'),
-        dependencia: g('dependencia'),
     };
 }
 
 function guardarNuevoRack() {
     const datos = _leerFormRack('nuevo');
-    if (!datos.numero) {
-        document.getElementById('rack-numero-nuevo').classList.add('error');
-        toast('El número de rack es obligatorio', 'error');
+    const patEl = document.getElementById('rack-patrimonio-nuevo');
+    const uEl   = document.getElementById('rack-unidades-nuevo');
+    let ok = true;
+    if (!datos.patrimonio) { patEl.classList.add('error'); ok = false; }
+    if (!datos.unidades)   { uEl.classList.add('error');   ok = false; }
+    if (!ok) { toast('Patrimonio y Unidades son obligatorios', 'error'); return; }
+    if (state.racks.some(r => r.patrimonio.toLowerCase() === datos.patrimonio.toLowerCase())) {
+        patEl.classList.add('error');
+        toast(`Ya existe un rack con patrimonio "${datos.patrimonio}"`, 'error');
         return;
     }
-    if (state.racks.some(r => r.numero.toLowerCase() === datos.numero.toLowerCase())) {
-        document.getElementById('rack-numero-nuevo').classList.add('error');
-        toast(`El rack "${datos.numero}" ya existe`, 'error');
-        return;
-    }
-    historial.empujar(`Agregar rack ${datos.numero}`);
-    state.racks.push({ id: uid(), estado: 'inventario', ...datos });
+    historial.empujar(`Agregar rack (patrimonio ${datos.patrimonio})`);
+    state.racks.push({ id: uid(), estado: 'inventario', numero: '', ...datos });
     guardar(); renderTodo(); MM.cerrar('modal-rack-nuevo');
-    toast(`Rack ${datos.numero} agregado`);
+    toast(`Rack agregado al inventario`);
 }
 
 let _editandoRackId = null;
@@ -374,19 +373,15 @@ function abrirModalEditarRack(id) {
         const el = document.getElementById(`rack-${f}-editar`);
         if (el) { el.value = v ?? ''; el.classList.remove('error'); }
     };
-    set('numero', rack.numero);
     set('patrimonio', rack.patrimonio);
     set('marca', rack.marca);
     set('modelo', rack.modelo);
     set('serial', rack.serial);
     set('notas', rack.notas);
     const uEl = document.getElementById('rack-unidades-editar');
-    if (uEl) uEl.value = rack.unidades ?? '';
-    set('edificio', rack.edificio);
-    set('piso', rack.piso);
-    set('dependencia', rack.dependencia);
+    if (uEl) { uEl.value = rack.unidades ?? ''; uEl.classList.remove('error'); }
 
-    // Botón baja: toggle según estado actual
+    // Botón baja
     const bajaBtn = document.getElementById('rack-editar-baja-btn');
     const bajaLabel = document.getElementById('baja-btn-label');
     if (bajaBtn && bajaLabel) {
@@ -401,21 +396,23 @@ function abrirModalEditarRack(id) {
 function guardarEditarRack() {
     if (!_editandoRackId) return;
     const datos = _leerFormRack('editar');
-    if (!datos.numero) {
-        document.getElementById('rack-numero-editar').classList.add('error');
-        toast('El número de rack es obligatorio', 'error');
+    const patEl = document.getElementById('rack-patrimonio-editar');
+    const uEl   = document.getElementById('rack-unidades-editar');
+    let ok = true;
+    if (!datos.patrimonio) { patEl.classList.add('error'); ok = false; }
+    if (!datos.unidades)   { uEl.classList.add('error');   ok = false; }
+    if (!ok) { toast('Patrimonio y Unidades son obligatorios', 'error'); return; }
+    if (state.racks.some(r => r.id !== _editandoRackId && r.patrimonio.toLowerCase() === datos.patrimonio.toLowerCase())) {
+        patEl.classList.add('error');
+        toast(`Ya existe un rack con patrimonio "${datos.patrimonio}"`, 'error');
         return;
     }
-    if (state.racks.some(r => r.id !== _editandoRackId && r.numero.toLowerCase() === datos.numero.toLowerCase())) {
-        document.getElementById('rack-numero-editar').classList.add('error');
-        toast(`El rack "${datos.numero}" ya existe`, 'error');
-        return;
-    }
-    historial.empujar(`Editar rack ${datos.numero}`);
+    const rack = state.racks.find(r => r.id === _editandoRackId);
+    historial.empujar(`Editar rack (patrimonio ${datos.patrimonio})`);
     const idx = state.racks.findIndex(r => r.id === _editandoRackId);
     if (idx !== -1) state.racks[idx] = { ...state.racks[idx], ...datos };
     guardar(); renderTodo(); MM.cerrar('modal-rack-editar');
-    toast(`Rack ${datos.numero} actualizado`);
+    toast(`Rack actualizado`);
 }
 
 function toggleBajaRack() {
@@ -424,20 +421,20 @@ function toggleBajaRack() {
     const esBaja = rack.estado === 'baja';
     if (esBaja) {
         // Reactivar
-        historial.empujar(`Reactivar rack ${rack.numero}`);
+        historial.empujar(`Reactivar rack (patrimonio ${rack.patrimonio})`);
         rack.estado = 'inventario';
         guardar(); renderTodo(); MM.cerrar('modal-rack-editar');
-        toast(`Rack ${rack.numero} reactivado`);
+        toast(`Rack reactivado`);
     } else {
         // Dar de baja
         confirmar(
             `¿Dar de baja el rack "${rack.numero}"?`,
             'El rack quedará marcado como baja. Podés reactivarlo después.',
             () => {
-                historial.empujar(`Dar de baja rack ${rack.numero}`);
+                historial.empujar(`Dar de baja rack (patrimonio ${rack.patrimonio})`);
                 rack.estado = 'baja';
                 guardar(); renderTodo(); MM.cerrar('modal-rack-editar');
-                toast(`Rack ${rack.numero} dado de baja`, 'info');
+                toast(`Rack dado de baja`, 'info');
             }
         );
     }
@@ -450,7 +447,7 @@ function eliminarRackActual() {
         `¿Eliminar rack "${rack.numero}"?`,
         'Esta acción se puede deshacer antes de cerrar la página.',
         () => {
-            historial.empujar(`Eliminar rack ${rack.numero}`);
+            historial.empujar(`Eliminar rack (patrimonio ${rack.patrimonio})`);
             state.racks = state.racks.filter(r => r.id !== _editandoRackId);
             guardar(); renderTodo(); MM.cerrar('modal-rack-editar');
             toast('Rack eliminado', 'info');
@@ -463,16 +460,25 @@ function confirmarPonerEnServicio() {
     const id = sel?.value;
     if (!id) { sel?.classList.add('error'); toast('Seleccioná un rack', 'error'); return; }
     const rack = state.racks.find(r => r.id === id); if (!rack) return;
-    const edificio   = document.getElementById('servicio-edificio')?.value.trim() || '';
-    const piso       = document.getElementById('servicio-piso')?.value.trim() || '';
+    const numEl = document.getElementById('servicio-numero');
+    const numero = numEl?.value.trim() || '';
+    if (!numero) { numEl?.classList.add('error'); toast('El número de rack es obligatorio', 'error'); return; }
+    if (state.racks.some(r => r.numero && r.numero.toLowerCase() === numero.toLowerCase())) {
+        numEl?.classList.add('error');
+        toast(`El número "${numero}" ya está asignado a otro rack`, 'error');
+        return;
+    }
+    const edificio    = document.getElementById('servicio-edificio')?.value.trim() || '';
+    const piso        = document.getElementById('servicio-piso')?.value.trim() || '';
     const dependencia = document.getElementById('servicio-dependencia')?.value.trim() || '';
-    historial.empujar(`Poner en servicio rack ${rack.numero}`);
-    rack.estado = 'servicio';
+    historial.empujar(`Poner en servicio rack (patrimonio ${rack.patrimonio})`);
+    rack.estado      = 'servicio';
+    rack.numero      = numero;
     rack.edificio    = edificio;
     rack.piso        = piso;
     rack.dependencia = dependencia;
     guardar(); renderTodo(); MM.cerrar('modal-rack-servicio');
-    toast(`Rack ${rack.numero} puesto en servicio`);
+    toast(`Rack ${numero} puesto en servicio`);
     actualizarFabServicio();
 }
 
@@ -488,9 +494,15 @@ function actualizarFabServicio() {
 // ═══════════════════════════════════════════════════════
 const ESTADO_BADGE = {
     inventario: '<span class="rack-badge rack-badge-inventario">Disponible</span>',
-    servicio:   '<span class="rack-badge rack-badge-servicio">En servicio</span>',
     baja:       '<span class="rack-badge rack-badge-baja">Baja</span>',
 };
+function _badgeEstado(r) {
+    if (r.estado === 'servicio') {
+        const label = r.numero ? esc(r.numero) : 'En servicio';
+        return `<span class="rack-badge rack-badge-servicio">${label}</span>`;
+    }
+    return ESTADO_BADGE[r.estado] || '';
+}
 
 function _getRacksFiltrados() {
     const busq = normalizarTexto(document.getElementById('busq-global')?.value || '');
@@ -501,29 +513,27 @@ function _getRacksFiltrados() {
             return busq.split(' ').every(t => h.includes(t));
         });
     }
-    racks.sort((a, b) => a.numero.localeCompare(b.numero, 'es', { numeric: true }));
+    racks.sort((a, b) => (a.patrimonio || '').localeCompare(b.patrimonio || '', 'es', { numeric: true }));
     return racks;
 }
 
 function _filaRack(r) {
     return `<tr class="tr-clickable rack-estado-${r.estado}" data-rack-id="${esc(r.id)}">
-        <td class="td-rack-num">${esc(r.numero)}</td>
-        <td class="td-muted">${esc(r.patrimonio || '—')}</td>
+        <td class="td-rack-num">${esc(r.patrimonio || '—')}</td>
         <td>${esc(r.marca || '—')}</td>
         <td class="td-muted">${esc(r.modelo || '—')}</td>
-        <td>${ESTADO_BADGE[r.estado] || ''}</td>
+        <td>${_badgeEstado(r)}</td>
     </tr>`;
 }
 
 function _filaRackInv(r) {
     return `<tr class="tr-clickable rack-estado-${r.estado}" data-rack-id="${esc(r.id)}">
-        <td class="td-rack-num">${esc(r.numero)}</td>
         <td class="td-muted">${esc(r.patrimonio || '—')}</td>
         <td>${esc(r.marca || '—')}</td>
         <td class="td-muted">${esc(r.modelo || '—')}</td>
         <td class="td-muted">${esc(r.serial || '—')}</td>
         <td class="td-muted td-center">${r.unidades != null ? esc(String(r.unidades)) + 'U' : '—'}</td>
-        <td>${ESTADO_BADGE[r.estado] || ''}</td>
+        <td>${_badgeEstado(r)}</td>
     </tr>`;
 }
 
