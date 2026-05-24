@@ -248,14 +248,22 @@
                 <svg class="svg-icon search-icon">
                     <use href="#icon-search" />
                 </svg>
-                <input type="text" id="busq-global" placeholder="Buscar por número, marca, modelo, patrimonio…"
-                    autocomplete="off">
+                <input type="text" id="busq-global" placeholder="Buscar por número, marca, patrimonio…" autocomplete="off">
                 <button id="busq-clear-btn" title="Limpiar">
                     <svg class="svg-icon">
                         <use href="#icon-close" />
                     </svg>
                 </button>
             </div>
+            <select id="busq-filtro" class="busq-filtro-select" title="Campo de búsqueda">
+                <option value="todo">Todo</option>
+                <option value="patrimonio">Patrimonio</option>
+                <option value="numero">Número</option>
+                <option value="marca">Marca / Mod</option>
+                <option value="identificador">Identificador</option>
+                <option value="unidades">Unidades</option>
+                <option value="estado">Estado</option>
+            </select>
         </div>
 
         <!-- ═══ PANEL DASHBOARD ═══ -->
@@ -361,7 +369,7 @@
                 <svg class="svg-icon">
                     <use href="#icon-rack" />
                 </svg>
-                <span>Agregar rack</span>
+                <span>Rack nuevo</span>
             </button>
             <button class="fab-menu-item" id="fab-rack-servicio">
                 <svg class="svg-icon">

@@ -574,14 +574,31 @@ function _badgeEstado(r) {
     return ESTADO_BADGE[r.estado] || '';
 }
 
+function _coincideBusqueda(r, busq, campo) {
+    let h = '';
+
+    // Preparamos los textos amigables para unidades y estado
+    const estadoVis = r.estado === 'inventario' ? 'disponible' : r.estado;
+    const uniVis = r.unidades ? r.unidades + 'u' : '';
+
+    if (campo === 'todo') h = [r.numero, r.patrimonio, r.marca, r.modelo, r.identificador, r.notas, uniVis, estadoVis].join(' ');
+    else if (campo === 'numero') h = r.numero;
+    else if (campo === 'patrimonio') h = r.patrimonio;
+    else if (campo === 'marca') h = [r.marca, r.modelo].join(' ');
+    else if (campo === 'identificador') h = r.identificador;
+    else if (campo === 'unidades') h = uniVis;
+    else if (campo === 'estado') h = estadoVis;
+
+    const textoNorm = normalizarTexto(h);
+    return busq.split(' ').every(t => textoNorm.includes(t));
+}
+
 function _getRacksFiltrados() {
     const busq = normalizarTexto(document.getElementById('busq-global')?.value || '');
     let racks = [...state.racks];
+    const campo = document.getElementById('busq-filtro')?.value || 'todo';
     if (busq) {
-        racks = racks.filter(r => {
-            const h = normalizarTexto([r.numero, r.patrimonio, r.marca, r.modelo, r.identificador, r.notas].join(' '));
-            return busq.split(' ').every(t => h.includes(t));
-        });
+        racks = racks.filter(r => _coincideBusqueda(r, busq, campo));
     }
     return _ordenarArray(racks, _sortInv.col, _sortInv.dir);
 }
@@ -706,7 +723,7 @@ function renderServicio() {
     const tbody = document.getElementById('tabla-servicio');
     const empty = document.getElementById('servicio-empty');
     const count = document.getElementById('servicio-count');
-    if (count) count.textContent = state.racks.filter(r => r.estado === 'servicio').length;
+    if (count) count.textContent = racks.length;
 
     if (!racks.length) {
         tbody.innerHTML = ''; empty.classList.remove('empty-state-hidden');
@@ -725,7 +742,7 @@ function renderInventario() {
     const tbody = document.getElementById('tabla-inventario');
     const empty = document.getElementById('inventario-empty');
     const count = document.getElementById('inventario-count');
-    if (count) count.textContent = state.racks.length;
+    if (count) count.textContent = racks.length;
 
     if (!racks.length) {
         tbody.innerHTML = ''; empty.classList.remove('empty-state-hidden');
@@ -961,27 +978,67 @@ document.addEventListener('keydown', e => {
         if (modalOpen) { MM.cerrarTop(); return; }
         if (_fabOpen) { cerrarFab(); return; }
 
-        // Nueva lógica para el buscador
         const b = document.getElementById('busq-global');
         if (b) {
             if (b.value) {
                 limpiarBusqueda();
-                return; // Limpia el texto y frena acá
+                return;
             } else if (document.activeElement === b) {
                 b.blur();
-                return; // Si ya estaba vacío y tenía foco, se lo quita
+                return;
             }
         }
     }
 
+    // 1. NUEVO: Tecla Enter para guardar en los modales
+    if (e.key === 'Enter' && modalOpen) {
+        const active = document.activeElement;
+        // Si el usuario está parado sobre un botón (ej. navegó con Tab hasta "Cancelar"), dejamos el Enter normal
+        if (active && (active.tagName === 'BUTTON' || active.tagName === 'TEXTAREA')) return;
+
+        e.preventDefault();
+        const abiertos = [...document.querySelectorAll('.modal.show')];
+        const topModal = abiertos[abiertos.length - 1]; // Toma el modal que esté más arriba
+
+        if (topModal) {
+            if (topModal.id === 'modal-rack-nuevo') document.getElementById('rack-nuevo-guardar-btn')?.click();
+            else if (topModal.id === 'modal-rack-editar') document.getElementById('rack-editar-guardar-btn')?.click();
+            else if (topModal.id === 'modal-rack-servicio') document.getElementById('servicio-confirmar-btn')?.click();
+            else if (topModal.id === 'modal-rack-editar-servicio') document.getElementById('editar-servicio-guardar-btn')?.click();
+            else if (topModal.id === 'modal-confirmar') document.getElementById('confirmar-ok')?.click();
+        }
+        return;
+    }
+
     if (e.ctrlKey && !e.altKey) {
+        // 2. NUEVO: Ctrl + Flechas para ciclar entre pestañas
+        if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+            const tag = document.activeElement?.tagName;
+            // Si está en un input, dejamos que funcione el atajo nativo para saltar de a palabras
+            if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
+            e.preventDefault();
+            const tabs = ['dashboard', 'servicio', 'inventario'];
+            let idx = tabs.indexOf(_tabActual);
+
+            if (e.key === 'ArrowRight') idx = (idx + 1) % tabs.length;
+            else idx = (idx - 1 + tabs.length) % tabs.length; // Cicla hacia atrás sin dar negativo
+
+            switchTab(tabs[idx]);
+            return;
+        }
+
         if (e.key === 'z' || e.key === 'Z') { e.preventDefault(); historial.undo(); return; }
         if (e.key === 'y' || e.key === 'Y') { e.preventDefault(); historial.redo(); return; }
     }
+
     if (!modalOpen && !_fabOpen && !e.ctrlKey && !e.altKey && !e.metaKey) {
         const tag = document.activeElement?.tagName;
-        const enInput = tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA';
-        if (e.key === '+' || e.key === '=') { e.preventDefault(); UI.abrirNuevoRack(); return; }
+        const enInput = tag === 'INPUT' || tag === 'TEXTAREA';
+
+        // 3. MODIFICADO: La tecla "+" ahora abre el modal "Poner en Servicio"
+        if (e.key === '+' || e.key === '=') { e.preventDefault(); UI.abrirServicio(); return; }
+
         if (!enInput && (e.key === 'Backspace' || (e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)))) {
             const b = document.getElementById('busq-global');
             if (b) { b.focus(); if (e.key === 'Backspace') { e.preventDefault(); b.value = b.value.slice(0, -1); onBusqGlobal(); } }
@@ -1141,6 +1198,23 @@ function _initBindings() {
             else { _sortServ.col = col; _sortServ.dir = 1; }
             renderServicio();
         });
+    });
+
+    // Filtro de Búsqueda
+    document.getElementById('busq-filtro')?.addEventListener('change', e => {
+        const p = document.getElementById('busq-global');
+        if (!p) return;
+        const v = e.target.value;
+        if (v === 'todo') p.placeholder = 'Buscar por número, marca, patrimonio…';
+        else if (v === 'numero') p.placeholder = 'Buscar número exacto…';
+        else if (v === 'patrimonio') p.placeholder = 'Buscar patrimonio…';
+        else if (v === 'marca') p.placeholder = 'Buscar marca o modelo…';
+        else if (v === 'identificador') p.placeholder = 'Buscar identificador…';
+        else if (v === 'unidades') p.placeholder = 'Buscar unidades (ej: 40u)…';
+        else if (v === 'estado') p.placeholder = 'Buscar estado (disponible, baja)…';
+
+        onBusqGlobal();
+        p.focus();
     });
 }
 
