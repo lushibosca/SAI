@@ -692,10 +692,7 @@ function renderDashboard() {
             <span class="stat-chip-value dist-servicio">${enServ}</span>
             <span class="stat-chip-sub">activos</span>
         </div>
-        <div class="stat-chip dist-card">
-            <span class="stat-chip-label">Distribución</span>
-            ${distRows}
-        </div>`;
+        `;
 
     // Animar barras
     requestAnimationFrame(() => {

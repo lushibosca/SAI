@@ -432,17 +432,12 @@ body.modal-open {
    CARDS
    ════════════════════════════════════════════════════════ */
 
-.dash-layout {
+/* ── Grid de Estadísticas del Dashboard ── */
+.dash-stats-grid {
     display: grid;
-    grid-template-columns: minmax(0, 3fr) minmax(0, 1fr);
+    grid-template-columns: repeat(3, 1fr); /* Crea 3 columnas iguales */
     gap: 0.75rem;
     align-items: start;
-}
-
-.dash-sidebar {
-    display: flex;
-    flex-direction: column;
-    gap: 0.6rem;
 }
 
 /* ── Card ── */
@@ -1578,17 +1573,8 @@ html.dark-mode body {
 }
 
 @media (max-width: 700px) {
-    .dash-layout {
+    .dash-stats-grid {
         grid-template-columns: 1fr;
-    }
-
-    /* Forzamos la columna y sacamos el wrap */
-    .dash-sidebar {
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
-        order: -1;
-        margin-bottom: 0.5rem;
     }
 
     /* Limpiamos las reglas viejas que aplastaban el chip */
