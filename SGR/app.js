@@ -9,7 +9,6 @@ function uid() { return Date.now().toString(36) + Math.random().toString(36).sli
 function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
 function normalizarTexto(t) { if (!t) return ''; return t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim().replace(/\s+/g, ' '); }
 function getHoyLocal() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
-function formatFecha(iso) { if (!iso) return ''; if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return esc(iso); const [y, m, d] = iso.split('-'); return `${d}/${m}/${y}`; }
 const isMobile = () => window.matchMedia('(pointer: coarse)').matches;
 function parseSeguro(s) {
     if (!s) return null;
@@ -24,7 +23,7 @@ function parseSeguro(s) {
 // ═══════════════════════════════════════════════════════
 async function generarFirma(obj) {
     if (!obj) return '0';
-    const core = { r: (obj.racks || []).map(x => [x.id, x.numero, x.marca, x.estado, x.edificio]) };
+    const core = { r: (obj.racks || []).map(x => [x.id, x.numero, x.marca, x.modelo, x.estado]) };
     const str = JSON.stringify(core);
     const enc = new TextEncoder();
     const buf = await crypto.subtle.digest('SHA-256', enc.encode(str));
@@ -39,34 +38,28 @@ async function verificarFirma(raw) {
 // ═══════════════════════════════════════════════════════
 //  SANITIZACIÓN
 // ═══════════════════════════════════════════════════════
-const ESTADOS_VALIDOS = new Set(['inventario', 'servicio', 'mantenimiento', 'baja']);
+// Estados válidos: inventario (disponible), servicio, baja
+const ESTADOS_VALIDOS = new Set(['inventario', 'servicio', 'baja']);
 const RE_ID = /^[a-z0-9]+$/i;
 
 function _s(v, max = 200) { if (typeof v !== 'string') return ''; return v.trim().slice(0, max); }
-function _n(v) { const n = Number(v); return (Number.isFinite(n) && n >= 0) ? Math.floor(n) : 0; }
 
 function _sanitizarRack(r) {
     if (!r || typeof r !== 'object') return null;
     const id = _s(r.id, 32), numero = _s(r.numero, 20);
     if (!id || !RE_ID.test(id) || !numero) return null;
     const estado = ESTADOS_VALIDOS.has(r.estado) ? r.estado : 'inventario';
-    const unidades_raw = Number(r.unidades);
-    const unidades = (Number.isFinite(unidades_raw) && unidades_raw > 0) ? Math.floor(unidades_raw) : null;
     return {
-        id, numero, estado, unidades,
+        id, numero, estado,
         patrimonio: _s(r.patrimonio, 30),
         marca: _s(r.marca, 50),
-        edificio: _s(r.edificio, 50),
-        piso: _s(r.piso, 20),
-        lugar: _s(r.lugar, 80),
-        p24: _n(r.p24), p48: _n(r.p48), fibra: _n(r.fibra),
+        modelo: _s(r.modelo, 50),
+        serial: _s(r.serial, 80),
+        unidades: Number.isInteger(r.unidades) && r.unidades > 0 ? r.unidades : null,
         notas: _s(r.notas, 200),
-        asig: r.asig ? {
-            edificio: _s(r.asig.edificio, 50),
-            piso: _s(r.asig.piso, 20),
-            lugar: _s(r.asig.lugar, 80),
-            fecha: (typeof r.asig.fecha === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(r.asig.fecha)) ? r.asig.fecha : '',
-        } : null,
+        edificio: _s(r.edificio, 80),
+        piso: _s(r.piso, 30),
+        dependencia: _s(r.dependencia, 100),
     };
 }
 
@@ -212,15 +205,6 @@ function confirmar(titulo, texto, cb) {
     _confirmarPadreId = abiertos.length ? abiertos[abiertos.length - 1].id : null;
     MM.abrir('modal-confirmar');
 }
-document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('confirmar-ok').addEventListener('click', () => {
-        MM.cerrar('modal-confirmar');
-        const cb = _confirmarCb; _confirmarCb = null;
-        if (_confirmarPadreId) { const id = _confirmarPadreId; _confirmarPadreId = null; setTimeout(() => { }, 50); }
-        cb?.();
-    });
-    document.getElementById('confirmar-cancelar').addEventListener('click', () => { _confirmarCb = null; MM.cerrar('modal-confirmar'); });
-});
 
 // ═══════════════════════════════════════════════════════
 //  DARK MODE
@@ -233,6 +217,21 @@ function toggleDarkMode() {
 }
 
 // ═══════════════════════════════════════════════════════
+//  FAB DROPDOWN
+// ═══════════════════════════════════════════════════════
+let _fabOpen = false;
+function toggleFab() {
+    _fabOpen = !_fabOpen;
+    document.getElementById('fab-menu')?.classList.toggle('show', _fabOpen);
+    document.getElementById('btn-fab-main')?.classList.toggle('active', _fabOpen);
+}
+function cerrarFab() {
+    _fabOpen = false;
+    document.getElementById('fab-menu')?.classList.remove('show');
+    document.getElementById('btn-fab-main')?.classList.remove('active');
+}
+
+// ═══════════════════════════════════════════════════════
 //  TABS
 // ═══════════════════════════════════════════════════════
 let _tabActual = 'dashboard';
@@ -240,6 +239,7 @@ const TAB_ICONS = { dashboard: '#icon-dashboard', servicio: '#icon-service', inv
 const TAB_LABELS = { dashboard: 'Dashboard', servicio: 'Servicio', inventario: 'Inventario' };
 
 function switchTab(tab) {
+    cerrarFab();
     if (_tabActual === tab) {
         if (document.getElementById('busq-global').value) { limpiarBusqueda(); }
         return;
@@ -269,53 +269,48 @@ function switchTab(tab) {
 let _busqTimer = null;
 function onBusqGlobal() {
     const val = document.getElementById('busq-global').value;
-    document.getElementById('busq-clear-btn').style.display = val ? 'flex' : 'none';
+    const clearBtn = document.getElementById('busq-clear-btn');
+    if (clearBtn) clearBtn.classList.toggle('visible', !!val);
     if (_busqTimer) clearTimeout(_busqTimer);
     _busqTimer = setTimeout(renderTodo, 300);
 }
 function limpiarBusqueda() {
     if (_busqTimer) clearTimeout(_busqTimer);
     document.getElementById('busq-global').value = '';
-    document.getElementById('busq-clear-btn').style.display = 'none';
+    const clearBtn = document.getElementById('busq-clear-btn');
+    if (clearBtn) clearBtn.classList.remove('visible');
     renderTodo();
-}
-
-// ═══════════════════════════════════════════════════════
-//  ESTADO SELECTOR
-// ═══════════════════════════════════════════════════════
-function selEstado(sufijo, estado) {
-    const sel = document.getElementById(`estado-selector-${sufijo}`);
-    if (!sel) return;
-    sel.querySelectorAll('.estado-btn').forEach(btn => btn.classList.toggle('activo', btn.dataset.estado === estado));
-    const wrap = document.getElementById(`asig-wrap-${sufijo}`);
-    if (wrap) wrap.style.display = estado === 'servicio' ? '' : 'none';
-}
-function _getEstado(sufijo) {
-    const activo = document.getElementById(`estado-selector-${sufijo}`)?.querySelector('.estado-btn.activo');
-    return activo ? activo.dataset.estado : 'inventario';
 }
 
 // ═══════════════════════════════════════════════════════
 //  UI (modales y navegación)
 // ═══════════════════════════════════════════════════════
 const UI = {
+    abrirServicio() {
+        cerrarFab();
+        const disponibles = state.racks.filter(r => r.estado === 'inventario');
+        if (!disponibles.length) { toast('No hay racks disponibles para poner en servicio', 'error'); return; }
+        const sel = document.getElementById('servicio-rack-select');
+        sel.innerHTML = '<option value="">— Seleccioná un rack disponible —</option>' +
+            disponibles.map(r => `<option value="${esc(r.id)}">${esc(r.numero)}${r.marca ? ' · ' + esc(r.marca) : ''}${r.modelo ? ' · ' + esc(r.modelo) : ''}</option>`).join('');
+        sel.value = '';
+        sel.classList.remove('error');
+        ['servicio-edificio', 'servicio-piso', 'servicio-dependencia'].forEach(id => {
+            const el = document.getElementById(id); if (el) { el.value = ''; el.classList.remove('error'); }
+        });
+        MM.abrir('modal-rack-servicio', () => { if (!isMobile()) setTimeout(() => sel.focus(), 200); });
+    },
     abrirNuevoRack() {
-        selEstado('nuevo', 'inventario');
-        ['numero', 'patrimonio', 'marca', 'edificio', 'piso', 'lugar', 'notas'].forEach(f => {
+        cerrarFab();
+        ['numero', 'patrimonio', 'marca', 'modelo', 'notas'].forEach(f => {
             const el = document.getElementById(`rack-${f}-nuevo`);
             if (el) { el.value = ''; el.classList.remove('error'); }
         });
-        ['unidades', 'p24', 'p48', 'fibra'].forEach(f => {
-            const el = document.getElementById(`rack-${f}-nuevo`); if (el) el.value = '';
+        MM.abrir('modal-rack-nuevo', () => {
+            if (!isMobile()) setTimeout(() => document.getElementById('rack-numero-nuevo')?.focus(), 200);
         });
-        ['asig-edificio', 'asig-piso', 'asig-lugar'].forEach(f => {
-            const el = document.getElementById(`rack-${f}-nuevo`); if (el) el.value = '';
-        });
-        const fe = document.getElementById('rack-asig-fecha-nuevo'); if (fe) fe.value = getHoyLocal();
-        MM.abrir('modal-rack-nuevo', () => { if (!isMobile()) setTimeout(() => document.getElementById('rack-numero-nuevo')?.focus(), 200); });
     },
     cerrarNuevoRack() { MM.cerrar('modal-rack-nuevo'); },
-
     abrirGist() { MM.nav('modal-ajustes', () => { GistSync.poblarModal(); MM.abrir('modal-gist'); }); },
     cerrarGist() { MM.nav('modal-gist', () => MM.abrir('modal-ajustes')); },
     abrirAjustes() { MM.abrir('modal-ajustes'); },
@@ -339,29 +334,34 @@ const UI = {
 // ═══════════════════════════════════════════════════════
 function _leerFormRack(sufijo) {
     const g = (id) => document.getElementById(`rack-${id}-${sufijo}`)?.value.trim() || '';
-    const gi = (id) => { const v = parseInt(document.getElementById(`rack-${id}-${sufijo}`)?.value || '0', 10); return isNaN(v) ? 0 : Math.max(0, v); };
-    const numero = g('numero'), estado = _getEstado(sufijo);
-    let asig = null;
-    if (estado === 'servicio') {
-        asig = {
-            edificio: g('asig-edificio'), piso: g('asig-piso'),
-            lugar: g('asig-lugar'), fecha: document.getElementById(`rack-asig-fecha-${sufijo}`)?.value || '',
-        };
-    }
     return {
-        numero, patrimonio: g('patrimonio'), marca: g('marca'), edificio: g('edificio'), piso: g('piso'), lugar: g('lugar'), notas: g('notas'),
-        unidades: gi('unidades') || null, p24: gi('p24'), p48: gi('p48'), fibra: gi('fibra'), estado, asig
+        numero: g('numero'),
+        patrimonio: g('patrimonio'),
+        marca: g('marca'),
+        modelo: g('modelo'),
+        serial: g('serial'),
+        unidades: parseInt(document.getElementById(`rack-unidades-${sufijo}`)?.value) || null,
+        notas: g('notas'),
+        edificio: g('edificio'),
+        piso: g('piso'),
+        dependencia: g('dependencia'),
     };
 }
 
 function guardarNuevoRack() {
     const datos = _leerFormRack('nuevo');
-    if (!datos.numero) { document.getElementById('rack-numero-nuevo').classList.add('error'); toast('El número de rack es obligatorio', 'error'); return; }
+    if (!datos.numero) {
+        document.getElementById('rack-numero-nuevo').classList.add('error');
+        toast('El número de rack es obligatorio', 'error');
+        return;
+    }
     if (state.racks.some(r => r.numero.toLowerCase() === datos.numero.toLowerCase())) {
-        document.getElementById('rack-numero-nuevo').classList.add('error'); toast(`El rack "${datos.numero}" ya existe`, 'error'); return;
+        document.getElementById('rack-numero-nuevo').classList.add('error');
+        toast(`El rack "${datos.numero}" ya existe`, 'error');
+        return;
     }
     historial.empujar(`Agregar rack ${datos.numero}`);
-    state.racks.push({ id: uid(), ...datos });
+    state.racks.push({ id: uid(), estado: 'inventario', ...datos });
     guardar(); renderTodo(); MM.cerrar('modal-rack-nuevo');
     toast(`Rack ${datos.numero} agregado`);
 }
@@ -370,28 +370,46 @@ let _editandoRackId = null;
 function abrirModalEditarRack(id) {
     const rack = state.racks.find(r => r.id === id); if (!rack) return;
     _editandoRackId = id;
-    const set = (f, v) => { const el = document.getElementById(`rack-${f}-editar`); if (el) { el.value = v ?? ''; el.classList.remove('error'); } };
-    set('numero', rack.numero); set('patrimonio', rack.patrimonio); set('marca', rack.marca);
-    set('edificio', rack.edificio); set('piso', rack.piso); set('lugar', rack.lugar); set('notas', rack.notas);
-    set('unidades', rack.unidades ?? ''); set('p24', rack.p24 || ''); set('p48', rack.p48 || ''); set('fibra', rack.fibra || '');
-    selEstado('editar', rack.estado || 'inventario');
-    if (rack.asig) {
-        const sa = (f, v) => { const el = document.getElementById(`rack-asig-${f}-editar`); if (el) el.value = v || ''; };
-        sa('edificio', rack.asig.edificio); sa('piso', rack.asig.piso); sa('lugar', rack.asig.lugar);
-        const fe = document.getElementById('rack-asig-fecha-editar'); if (fe) fe.value = rack.asig.fecha || '';
-    } else {
-        ['edificio', 'piso', 'lugar'].forEach(f => { const el = document.getElementById(`rack-asig-${f}-editar`); if (el) el.value = ''; });
-        const fe = document.getElementById('rack-asig-fecha-editar'); if (fe) fe.value = getHoyLocal();
+    const set = (f, v) => {
+        const el = document.getElementById(`rack-${f}-editar`);
+        if (el) { el.value = v ?? ''; el.classList.remove('error'); }
+    };
+    set('numero', rack.numero);
+    set('patrimonio', rack.patrimonio);
+    set('marca', rack.marca);
+    set('modelo', rack.modelo);
+    set('serial', rack.serial);
+    set('notas', rack.notas);
+    const uEl = document.getElementById('rack-unidades-editar');
+    if (uEl) uEl.value = rack.unidades ?? '';
+    set('edificio', rack.edificio);
+    set('piso', rack.piso);
+    set('dependencia', rack.dependencia);
+
+    // Botón baja: toggle según estado actual
+    const bajaBtn = document.getElementById('rack-editar-baja-btn');
+    const bajaLabel = document.getElementById('baja-btn-label');
+    if (bajaBtn && bajaLabel) {
+        const esBaja = rack.estado === 'baja';
+        bajaLabel.textContent = esBaja ? 'Reactivar al inventario' : 'Dar de baja';
+        bajaBtn.classList.toggle('btn-baja--reactivar', esBaja);
     }
+
     MM.abrir('modal-rack-editar');
 }
 
 function guardarEditarRack() {
     if (!_editandoRackId) return;
     const datos = _leerFormRack('editar');
-    if (!datos.numero) { document.getElementById('rack-numero-editar').classList.add('error'); toast('El número de rack es obligatorio', 'error'); return; }
+    if (!datos.numero) {
+        document.getElementById('rack-numero-editar').classList.add('error');
+        toast('El número de rack es obligatorio', 'error');
+        return;
+    }
     if (state.racks.some(r => r.id !== _editandoRackId && r.numero.toLowerCase() === datos.numero.toLowerCase())) {
-        document.getElementById('rack-numero-editar').classList.add('error'); toast(`El rack "${datos.numero}" ya existe`, 'error'); return;
+        document.getElementById('rack-numero-editar').classList.add('error');
+        toast(`El rack "${datos.numero}" ya existe`, 'error');
+        return;
     }
     historial.empujar(`Editar rack ${datos.numero}`);
     const idx = state.racks.findIndex(r => r.id === _editandoRackId);
@@ -400,63 +418,86 @@ function guardarEditarRack() {
     toast(`Rack ${datos.numero} actualizado`);
 }
 
+function toggleBajaRack() {
+    if (!_editandoRackId) return;
+    const rack = state.racks.find(r => r.id === _editandoRackId); if (!rack) return;
+    const esBaja = rack.estado === 'baja';
+    if (esBaja) {
+        // Reactivar
+        historial.empujar(`Reactivar rack ${rack.numero}`);
+        rack.estado = 'inventario';
+        guardar(); renderTodo(); MM.cerrar('modal-rack-editar');
+        toast(`Rack ${rack.numero} reactivado`);
+    } else {
+        // Dar de baja
+        confirmar(
+            `¿Dar de baja el rack "${rack.numero}"?`,
+            'El rack quedará marcado como baja. Podés reactivarlo después.',
+            () => {
+                historial.empujar(`Dar de baja rack ${rack.numero}`);
+                rack.estado = 'baja';
+                guardar(); renderTodo(); MM.cerrar('modal-rack-editar');
+                toast(`Rack ${rack.numero} dado de baja`, 'info');
+            }
+        );
+    }
+}
+
 function eliminarRackActual() {
     if (!_editandoRackId) return;
     const rack = state.racks.find(r => r.id === _editandoRackId); if (!rack) return;
-    confirmar(`¿Eliminar rack "${rack.numero}"?`, 'Esta acción se puede deshacer antes de cerrar la página.', () => {
-        historial.empujar(`Eliminar rack ${rack.numero}`);
-        state.racks = state.racks.filter(r => r.id !== _editandoRackId);
-        guardar(); renderTodo(); MM.cerrar('modal-rack-editar');
-        toast('Rack eliminado', 'info');
-    });
+    confirmar(
+        `¿Eliminar rack "${rack.numero}"?`,
+        'Esta acción se puede deshacer antes de cerrar la página.',
+        () => {
+            historial.empujar(`Eliminar rack ${rack.numero}`);
+            state.racks = state.racks.filter(r => r.id !== _editandoRackId);
+            guardar(); renderTodo(); MM.cerrar('modal-rack-editar');
+            toast('Rack eliminado', 'info');
+        }
+    );
 }
 
-// ═══════════════════════════════════════════════════════
-//  RENDER HELPERS
+function confirmarPonerEnServicio() {
+    const sel = document.getElementById('servicio-rack-select');
+    const id = sel?.value;
+    if (!id) { sel?.classList.add('error'); toast('Seleccioná un rack', 'error'); return; }
+    const rack = state.racks.find(r => r.id === id); if (!rack) return;
+    const edificio   = document.getElementById('servicio-edificio')?.value.trim() || '';
+    const piso       = document.getElementById('servicio-piso')?.value.trim() || '';
+    const dependencia = document.getElementById('servicio-dependencia')?.value.trim() || '';
+    historial.empujar(`Poner en servicio rack ${rack.numero}`);
+    rack.estado = 'servicio';
+    rack.edificio    = edificio;
+    rack.piso        = piso;
+    rack.dependencia = dependencia;
+    guardar(); renderTodo(); MM.cerrar('modal-rack-servicio');
+    toast(`Rack ${rack.numero} puesto en servicio`);
+    actualizarFabServicio();
+}
+
+function actualizarFabServicio() {
+    const btn = document.getElementById('fab-rack-servicio');
+    if (!btn) return;
+    const hayDisponibles = state.racks.some(r => r.estado === 'inventario');
+    btn.disabled = !hayDisponibles;
+    btn.title = hayDisponibles ? '' : 'No hay racks disponibles';
+    btn.classList.toggle('fab-menu-item--disabled', !hayDisponibles);
+}
+
 // ═══════════════════════════════════════════════════════
 const ESTADO_BADGE = {
-    inventario: '<span class="rack-badge rack-badge-inventario">Inventario</span>',
-    servicio: '<span class="rack-badge rack-badge-servicio">Servicio</span>',
-    mantenimiento: '<span class="rack-badge rack-badge-mantenimiento">Mantenim.</span>',
-    baja: '<span class="rack-badge rack-badge-baja">Baja</span>',
+    inventario: '<span class="rack-badge rack-badge-inventario">Disponible</span>',
+    servicio:   '<span class="rack-badge rack-badge-servicio">En servicio</span>',
+    baja:       '<span class="rack-badge rack-badge-baja">Baja</span>',
 };
-function _ports(r) {
-    const parts = [];
-    if (r.p24) parts.push(`24p:${r.p24}`);
-    if (r.p48) parts.push(`48p:${r.p48}`);
-    if (r.fibra) parts.push(`F:${r.fibra}`);
-    return parts.join(' ');
-}
 
-// ─── Filtro estado activo ───
-let _filtroEstado = null;
-function setFiltroEstado(e) { _filtroEstado = (_filtroEstado === e) ? null : e; renderFilterChips(); renderTodo(); }
-
-function renderFilterChips() {
-    const CHIPS = [
-        { key: 'inventario', label: 'Inventario' },
-        { key: 'servicio', label: 'Servicio' },
-        { key: 'mantenimiento', label: 'Mantenim.' },
-        { key: 'baja', label: 'Baja' },
-    ];
-    ['filter-chips-dash', 'filter-chips-inv'].forEach(id => {
-        const el = document.getElementById(id); if (!el) return;
-        el.innerHTML = CHIPS.map(c => `
-            <button class="filter-chip${_filtroEstado === c.key ? ' activo' : ''}" data-filtro="${c.key}">${c.label}</button>
-        `).join('');
-    });
-}
-
-// ═══════════════════════════════════════════════════════
-//  RENDER DASHBOARD
-// ═══════════════════════════════════════════════════════
 function _getRacksFiltrados() {
     const busq = normalizarTexto(document.getElementById('busq-global')?.value || '');
     let racks = [...state.racks];
-    if (_filtroEstado) racks = racks.filter(r => r.estado === _filtroEstado);
     if (busq) {
         racks = racks.filter(r => {
-            const h = normalizarTexto([r.numero, r.patrimonio, r.marca, r.edificio, r.piso, r.lugar, r.notas].join(' '));
+            const h = normalizarTexto([r.numero, r.patrimonio, r.marca, r.modelo, r.serial, r.notas].join(' '));
             return busq.split(' ').every(t => h.includes(t));
         });
     }
@@ -464,6 +505,40 @@ function _getRacksFiltrados() {
     return racks;
 }
 
+function _filaRack(r) {
+    return `<tr class="tr-clickable rack-estado-${r.estado}" data-rack-id="${esc(r.id)}">
+        <td class="td-rack-num">${esc(r.numero)}</td>
+        <td class="td-muted">${esc(r.patrimonio || '—')}</td>
+        <td>${esc(r.marca || '—')}</td>
+        <td class="td-muted">${esc(r.modelo || '—')}</td>
+        <td>${ESTADO_BADGE[r.estado] || ''}</td>
+    </tr>`;
+}
+
+function _filaRackInv(r) {
+    return `<tr class="tr-clickable rack-estado-${r.estado}" data-rack-id="${esc(r.id)}">
+        <td class="td-rack-num">${esc(r.numero)}</td>
+        <td class="td-muted">${esc(r.patrimonio || '—')}</td>
+        <td>${esc(r.marca || '—')}</td>
+        <td class="td-muted">${esc(r.modelo || '—')}</td>
+        <td class="td-muted">${esc(r.serial || '—')}</td>
+        <td class="td-muted td-center">${r.unidades != null ? esc(String(r.unidades)) + 'U' : '—'}</td>
+        <td>${ESTADO_BADGE[r.estado] || ''}</td>
+    </tr>`;
+}
+
+function _filaRackServicio(r) {
+    return `<tr class="tr-clickable rack-estado-${r.estado}" data-rack-id="${esc(r.id)}">
+        <td class="td-rack-num">${esc(r.numero)}</td>
+        <td>${esc(r.edificio || '—')}</td>
+        <td class="td-muted">${esc(r.piso || '—')}</td>
+        <td class="td-muted">${esc(r.dependencia || '—')}</td>
+    </tr>`;
+}
+
+// ═══════════════════════════════════════════════════════
+//  RENDER DASHBOARD
+// ═══════════════════════════════════════════════════════
 function renderDashboard() {
     const racks = _getRacksFiltrados();
     const tbody = document.getElementById('tabla-racks');
@@ -472,30 +547,20 @@ function renderDashboard() {
         tbody.innerHTML = ''; empty.classList.remove('empty-state-hidden');
     } else {
         empty.classList.add('empty-state-hidden');
-        tbody.innerHTML = racks.map(r => {
-            const loc = [r.edificio, r.piso].filter(Boolean).join(' ');
-            return `<tr class="tr-clickable rack-estado-${r.estado}" data-rack-id="${esc(r.id)}">
-                <td class="td-rack-num">${esc(r.numero)}</td>
-                <td>${esc(r.marca || r.patrimonio || '—')}</td>
-                <td class="td-muted td-sm">${esc(loc || '—')}</td>
-                <td>${ESTADO_BADGE[r.estado] || ''}</td>
-                <td class="td-muted td-xs">${esc(_ports(r))}</td>
-            </tr>`;
-        }).join('');
+        tbody.innerHTML = racks.map(_filaRack).join('');
     }
 
-    // stats sidebar
+    // Stats sidebar
     const all = state.racks;
-    const total = all.length, enServ = all.filter(r => r.estado === 'servicio').length;
-    const enInv = all.filter(r => r.estado === 'inventario').length;
-    const enMant = all.filter(r => r.estado === 'mantenimiento').length;
+    const total = all.length;
+    const enServ = all.filter(r => r.estado === 'servicio').length;
+    const enInv  = all.filter(r => r.estado === 'inventario').length;
     const enBaja = all.filter(r => r.estado === 'baja').length;
 
     const distRows = total ? [
-        { label: 'Inventario', n: enInv, cls: 'dist-inventario' },
-        { label: 'Servicio', n: enServ, cls: 'dist-servicio' },
-        { label: 'Mantenim.', n: enMant, cls: 'dist-mantenimiento' },
-        { label: 'Baja', n: enBaja, cls: 'dist-baja' },
+        { label: 'Disponible',  n: enInv,  cls: 'dist-inventario' },
+        { label: 'En servicio', n: enServ, cls: 'dist-servicio' },
+        { label: 'Baja',        n: enBaja, cls: 'dist-baja' },
     ].filter(e => e.n > 0).map(e => {
         const pct = Math.round((e.n / total) * 100);
         return `<div class="rack-dist-bar">
@@ -505,32 +570,32 @@ function renderDashboard() {
         </div>`;
     }).join('') : '<p class="td-muted td-sm">Sin datos</p>';
 
-    const statsHtml = `
+    document.getElementById('stats-grid').innerHTML = `
         <div class="stat-chip">
             <span class="stat-chip-label">Racks</span>
             <span class="stat-chip-value">${total}</span>
             <span class="stat-chip-sub">registrados</span>
         </div>
         <div class="stat-chip">
+            <span class="stat-chip-label">Disponibles</span>
+            <span class="stat-chip-value dist-inventario">${enInv}</span>
+            <span class="stat-chip-sub">en inventario</span>
+        </div>
+        <div class="stat-chip">
             <span class="stat-chip-label">En Servicio</span>
             <span class="stat-chip-value dist-servicio">${enServ}</span>
             <span class="stat-chip-sub">activos</span>
         </div>
-        <div class="stat-chip">
-            <span class="stat-chip-label">Inventario</span>
-            <span class="stat-chip-value dist-inventario">${enInv}</span>
-            <span class="stat-chip-sub">disponibles</span>
-        </div>
-        <div class="rack-sidebar-chip">
-            <span class="stat-chip-label stat-chip-label-mb">Distribución</span>
+        <div class="stat-chip dist-card">
+            <span class="stat-chip-label">Distribución</span>
             ${distRows}
-        </div>
-    `;
-    const statsEl = document.getElementById('stats-grid');
-    statsEl.innerHTML = statsHtml;
-    statsEl.querySelectorAll('.rack-dist-bar-fill[data-pct]').forEach(el => {
-        el.style.width = el.dataset.pct + '%';
-        el.removeAttribute('data-pct');
+        </div>`;
+
+    // Animar barras
+    requestAnimationFrame(() => {
+        document.querySelectorAll('.rack-dist-bar-fill').forEach(el => {
+            el.style.width = (el.dataset.pct || 0) + '%';
+        });
     });
 }
 
@@ -539,80 +604,54 @@ function renderDashboard() {
 // ═══════════════════════════════════════════════════════
 function renderServicio() {
     const busq = normalizarTexto(document.getElementById('busq-global')?.value || '');
-    const tbody = document.getElementById('tabla-servicio');
-    const empty = document.getElementById('servicio-empty');
-    const count = document.getElementById('servicio-count');
-
     let racks = state.racks.filter(r => r.estado === 'servicio');
     if (busq) {
         racks = racks.filter(r => {
-            const h = normalizarTexto([r.numero, r.marca, r.edificio, r.asig?.edificio, r.asig?.lugar, r.lugar].join(' '));
+            const h = normalizarTexto([r.numero, r.patrimonio, r.marca, r.modelo, r.serial, r.notas].join(' '));
             return busq.split(' ').every(t => h.includes(t));
         });
     }
     racks.sort((a, b) => a.numero.localeCompare(b.numero, 'es', { numeric: true }));
-    count.textContent = racks.length;
 
-    if (!racks.length) { tbody.innerHTML = ''; empty.classList.remove('empty-state-hidden'); return; }
-    empty.classList.add('empty-state-hidden');
+    const tbody = document.getElementById('tabla-servicio');
+    const empty = document.getElementById('servicio-empty');
+    const count = document.getElementById('servicio-count');
+    if (count) count.textContent = state.racks.filter(r => r.estado === 'servicio').length;
 
-    tbody.innerHTML = racks.map(r => {
-        const loc = r.asig ? [r.asig.edificio, r.asig.piso, r.asig.lugar].filter(Boolean).join(' · ') : (r.edificio || '—');
-        return `<tr class="tr-clickable" data-rack-id="${esc(r.id)}">
-            <td class="td-rack-num">${esc(r.numero)}</td>
-            <td>${esc(r.marca || '—')}</td>
-            <td class="td-sm">${esc(loc || '—')}</td>
-            <td class="td-muted td-sm">${r.asig?.fecha ? formatFecha(r.asig.fecha) : '—'}</td>
-            <td class="td-muted td-xs">${esc(_ports(r))}</td>
-        </tr>`;
-    }).join('');
+    if (!racks.length) {
+        tbody.innerHTML = ''; empty.classList.remove('empty-state-hidden');
+    } else {
+        empty.classList.add('empty-state-hidden');
+        tbody.innerHTML = racks.map(_filaRackServicio).join('');
+    }
 }
 
 // ═══════════════════════════════════════════════════════
 //  RENDER INVENTARIO
 // ═══════════════════════════════════════════════════════
 function renderInventario() {
-    const busq = normalizarTexto(document.getElementById('busq-global')?.value || '');
+    const racks = _getRacksFiltrados();
     const tbody = document.getElementById('tabla-inventario');
     const empty = document.getElementById('inventario-empty');
     const count = document.getElementById('inventario-count');
+    if (count) count.textContent = state.racks.length;
 
-    let racks = [...state.racks];
-    if (_filtroEstado) racks = racks.filter(r => r.estado === _filtroEstado);
-    if (busq) {
-        racks = racks.filter(r => {
-            const h = normalizarTexto([r.numero, r.patrimonio, r.marca, r.edificio, r.piso, r.lugar, r.notas].join(' '));
-            return busq.split(' ').every(t => h.includes(t));
-        });
+    if (!racks.length) {
+        tbody.innerHTML = ''; empty.classList.remove('empty-state-hidden');
+    } else {
+        empty.classList.add('empty-state-hidden');
+        tbody.innerHTML = racks.map(_filaRackInv).join('');
     }
-    racks.sort((a, b) => a.numero.localeCompare(b.numero, 'es', { numeric: true }));
-    count.textContent = racks.length;
-
-    if (!racks.length) { tbody.innerHTML = ''; empty.classList.remove('empty-state-hidden'); return; }
-    empty.classList.add('empty-state-hidden');
-
-    tbody.innerHTML = racks.map(r => {
-        const loc = [r.edificio, r.piso, r.lugar].filter(Boolean).join(' · ');
-        return `<tr class="tr-clickable rack-estado-${r.estado}" data-rack-id="${esc(r.id)}">
-            <td class="td-rack-num">${esc(r.numero)}</td>
-            <td class="td-muted td-sm">${esc(r.patrimonio || '—')}</td>
-            <td>${esc(r.marca || '—')}</td>
-            <td class="td-muted td-sm">${esc(loc || '—')}</td>
-            <td class="td-center">${r.unidades ? esc(String(r.unidades)) : '—'}</td>
-            <td>${ESTADO_BADGE[r.estado] || ''}</td>
-            <td class="td-muted td-xs">${esc(_ports(r))}</td>
-        </tr>`;
-    }).join('');
 }
 
 // ═══════════════════════════════════════════════════════
 //  RENDER GLOBAL
 // ═══════════════════════════════════════════════════════
 function renderTodo() {
-    renderFilterChips();
     renderDashboard();
     renderServicio();
     renderInventario();
+    actualizarFabServicio();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -633,9 +672,9 @@ let _importarParsed = null;
 function onImportarFileChange(e) {
     const file = e.target.files[0]; if (!file) return;
     const label = document.getElementById('importar-dropzone-label');
-    const zone = document.getElementById('importar-dropzone');
-    const btn = document.getElementById('importar-confirmar-btn');
-    const btnC = document.getElementById('importar-combinar-btn');
+    const zone  = document.getElementById('importar-dropzone');
+    const btn   = document.getElementById('importar-confirmar-btn');
+    const btnC  = document.getElementById('importar-combinar-btn');
     if (file.size > 5 * 1024 * 1024) {
         _importarParsed = null;
         label.innerHTML = '<span class="import-fail">✗ Archivo demasiado grande (máx 5 MB)</span>';
@@ -707,7 +746,7 @@ const GistSync = (() => {
     function _cargarCfg() { try { const c = parseSeguro(localStorage.getItem(CFG_KEY) || 'null'); if (c) _cfg = { ..._cfg, ...c }; } catch (_) { } _actualizarBotonesAjustes(); }
     function _guardarCfg() { try { localStorage.setItem(CFG_KEY, JSON.stringify(_cfg)); } catch (_) { } }
     function _spinStart() { document.getElementById('btn-ajustes')?.classList.add('icon-btn-spinning'); }
-    function _spinStop() { document.getElementById('btn-ajustes')?.classList.remove('icon-btn-spinning'); }
+    function _spinStop()  { document.getElementById('btn-ajustes')?.classList.remove('icon-btn-spinning'); }
     function _setBusy(busy) {
         _subiendo = busy;
         ['btn-gist-subir', 'btn-gist-bajar'].forEach(id => { const b = document.getElementById(id); if (b) b.disabled = busy; });
@@ -718,8 +757,8 @@ const GistSync = (() => {
     function _actualizarBotonesAjustes() {
         const token = !!(_cfg.token || '').trim(), gist = !!(_cfg.gistId || '').trim();
         const bu = document.getElementById('btn-ajustes-gist-subir'), bd = document.getElementById('btn-ajustes-gist-bajar');
-        if (bu) bu.style.display = (token && gist) ? 'flex' : 'none';
-        if (bd) bd.style.display = gist ? 'flex' : 'none';
+        if (bu) bu.classList.toggle('gist-quick-hidden', !(token && gist));
+        if (bd) bd.classList.toggle('gist-quick-hidden', !gist);
     }
     function _linkBtn() {
         const id = document.getElementById('gist-id')?.value.trim();
@@ -822,21 +861,25 @@ const GistSync = (() => {
 })();
 
 // ═══════════════════════════════════════════════════════
-//  KEYBOARD + SCROLL + MISC
+//  KEYBOARD + SCROLL
 // ═══════════════════════════════════════════════════════
 document.addEventListener('keydown', e => {
     const modalOpen = document.body.classList.contains('modal-open');
-    if (e.key === 'Escape' && modalOpen) { MM.cerrarTop(); return; }
+    if (e.key === 'Escape') {
+        if (modalOpen) { MM.cerrarTop(); return; }
+        if (_fabOpen) { cerrarFab(); return; }
+    }
     if (e.ctrlKey && !e.altKey) {
         if (e.key === 'z' || e.key === 'Z') { e.preventDefault(); historial.undo(); return; }
         if (e.key === 'y' || e.key === 'Y') { e.preventDefault(); historial.redo(); return; }
     }
-    if (!modalOpen && !e.ctrlKey && !e.altKey && !e.metaKey) {
+    if (!modalOpen && !_fabOpen && !e.ctrlKey && !e.altKey && !e.metaKey) {
         const tag = document.activeElement?.tagName;
         const enInput = tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA';
         if (e.key === '+' || e.key === '=') { e.preventDefault(); UI.abrirNuevoRack(); return; }
         if (!enInput && (e.key === 'Backspace' || (e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)))) {
-            const b = document.getElementById('busq-global'); if (b) { b.focus(); if (e.key === 'Backspace') { e.preventDefault(); b.value = b.value.slice(0, -1); onBusqGlobal(); } }
+            const b = document.getElementById('busq-global');
+            if (b) { b.focus(); if (e.key === 'Backspace') { e.preventDefault(); b.value = b.value.slice(0, -1); onBusqGlobal(); } }
         }
     }
 });
@@ -848,27 +891,8 @@ window.addEventListener('scroll', () => {
     if (h) h.classList.toggle('scrolled', window.scrollY > 50);
 }, { passive: true });
 
-document.addEventListener('input', e => { if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') e.target.classList.remove('error'); });
-
-// Delegación botones cerrar
-document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('rack-nuevo-cancelar-btn')?.addEventListener('click', () => UI.cerrarNuevoRack());
-    document.getElementById('rack-editar-cancelar-btn')?.addEventListener('click', () => MM.cerrar('modal-rack-editar'));
-    document.getElementById('ajustes-cerrar-btn')?.addEventListener('click', () => UI.cerrarAjustes());
-    document.getElementById('gist-cerrar-btn')?.addEventListener('click', () => UI.cerrarGist());
-    document.getElementById('importar-cerrar-btn')?.addEventListener('click', () => UI.cerrarImportar());
-
-    // import dropzone drag
-    const dz = document.getElementById('importar-dropzone');
-    if (dz) {
-        dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('import-dropzone-drag'); });
-        dz.addEventListener('dragleave', () => dz.classList.remove('import-dropzone-drag'));
-        dz.addEventListener('drop', e => {
-            e.preventDefault(); dz.classList.remove('import-dropzone-drag');
-            const file = e.dataTransfer.files[0];
-            if (file) { const dt = new DataTransfer(); dt.items.add(file); document.getElementById('importar-file-input').files = dt.files; onImportarFileChange({ target: { files: [file] } }); }
-        });
-    }
+document.addEventListener('input', e => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') e.target.classList.remove('error');
 });
 
 // ═══════════════════════════════════════════════════════
@@ -876,10 +900,8 @@ document.addEventListener('DOMContentLoaded', () => {
 // ═══════════════════════════════════════════════════════
 cargar();
 
-// dark icon
 try { if (localStorage.getItem('RCK_dark') === '1') { document.getElementById('dark-icon-use')?.setAttribute('href', '#icon-sun'); } } catch (_) { }
 
-// restore tab
 try {
     const t = localStorage.getItem('RCK_tab');
     if (t && ['servicio', 'inventario'].includes(t)) {
@@ -893,12 +915,11 @@ try {
     }
 } catch (_) { }
 
-renderFilterChips();
 renderTodo();
 GistSync.init();
 
 // ═══════════════════════════════════════════════════════
-//  BINDINGS (reemplaza los onclick inline eliminados con unsafe-inline)
+//  BINDINGS
 // ═══════════════════════════════════════════════════════
 function _initBindings() {
     // Tabs
@@ -916,24 +937,31 @@ function _initBindings() {
     document.getElementById('busq-global')?.addEventListener('input', onBusqGlobal);
     document.getElementById('busq-clear-btn')?.addEventListener('click', limpiarBusqueda);
 
-    // FAB + scroll top
-    document.getElementById('btn-fab-main')?.addEventListener('click', () => UI.abrirNuevoRack());
+    // FAB dropdown
+    document.getElementById('btn-fab-main')?.addEventListener('click', toggleFab);
+    document.getElementById('fab-nuevo-rack')?.addEventListener('click', () => UI.abrirNuevoRack());
+    document.getElementById('fab-rack-servicio')?.addEventListener('click', () => UI.abrirServicio());
+    document.getElementById('servicio-confirmar-btn')?.addEventListener('click', confirmarPonerEnServicio);
+    document.getElementById('servicio-cancelar-btn')?.addEventListener('click', () => MM.cerrar('modal-rack-servicio'));
+    // Cerrar FAB al hacer click fuera
+    document.addEventListener('click', e => {
+        if (_fabOpen && !e.target.closest('#fab-container')) cerrarFab();
+    });
+
+    // Scroll top
     document.getElementById('btn-scroll-top')?.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
 
     // Modal nuevo rack
     document.getElementById('rack-nuevo-guardar-btn')?.addEventListener('click', guardarNuevoRack);
-    document.getElementById('estado-selector-nuevo')?.addEventListener('click', e => {
-        const btn = e.target.closest('.estado-btn'); if (btn) selEstado('nuevo', btn.dataset.estado);
-    });
+    document.getElementById('rack-nuevo-cancelar-btn')?.addEventListener('click', () => UI.cerrarNuevoRack());
 
     // Modal editar rack
     document.getElementById('rack-editar-guardar-btn')?.addEventListener('click', guardarEditarRack);
     document.getElementById('rack-editar-eliminar-btn')?.addEventListener('click', eliminarRackActual);
-    document.getElementById('estado-selector-editar')?.addEventListener('click', e => {
-        const btn = e.target.closest('.estado-btn'); if (btn) selEstado('editar', btn.dataset.estado);
-    });
+    document.getElementById('rack-editar-cancelar-btn')?.addEventListener('click', () => MM.cerrar('modal-rack-editar'));
+    document.getElementById('rack-editar-baja-btn')?.addEventListener('click', toggleBajaRack);
 
-    // Clics en filas de tablas (delegación)
+    // Clics en filas de tablas
     ['tabla-racks', 'tabla-servicio', 'tabla-inventario'].forEach(tid => {
         document.getElementById(tid)?.addEventListener('click', e => {
             const tr = e.target.closest('tr[data-rack-id]');
@@ -942,6 +970,7 @@ function _initBindings() {
     });
 
     // Ajustes
+    document.getElementById('ajustes-cerrar-btn')?.addEventListener('click', () => UI.cerrarAjustes());
     document.getElementById('ajustes-exportar-btn')?.addEventListener('click', exportarDatos);
     document.getElementById('ajustes-importar-btn')?.addEventListener('click', () => UI.abrirImportar());
     document.getElementById('ajustes-restablecer-btn')?.addEventListener('click', restablecerDatos);
@@ -950,6 +979,7 @@ function _initBindings() {
     document.getElementById('btn-ajustes-gist-bajar')?.addEventListener('click', () => GistSync.bajar());
 
     // Modal Gist
+    document.getElementById('gist-cerrar-btn')?.addEventListener('click', () => UI.cerrarGist());
     document.getElementById('gist-token-eye')?.addEventListener('click', () => GistSync.toggleToken());
     document.getElementById('gist-autosync-toggle')?.addEventListener('click', () => GistSync.toggleAuto());
     document.getElementById('gist-id')?.addEventListener('input', () => GistSync._linkBtn());
@@ -958,10 +988,30 @@ function _initBindings() {
     document.getElementById('btn-gist-bajar')?.addEventListener('click', () => GistSync.bajar());
 
     // Modal importar
+    document.getElementById('importar-cerrar-btn')?.addEventListener('click', () => UI.cerrarImportar());
     document.getElementById('importar-file-input')?.addEventListener('change', onImportarFileChange);
     document.getElementById('importar-dropzone')?.addEventListener('click', () => document.getElementById('importar-file-input').click());
     document.getElementById('importar-confirmar-btn')?.addEventListener('click', () => importarDatos('reemplazar'));
     document.getElementById('importar-combinar-btn')?.addEventListener('click', () => importarDatos('combinar'));
+    const dz = document.getElementById('importar-dropzone');
+    if (dz) {
+        dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('import-dropzone-drag'); });
+        dz.addEventListener('dragleave', () => dz.classList.remove('import-dropzone-drag'));
+        dz.addEventListener('drop', e => {
+            e.preventDefault(); dz.classList.remove('import-dropzone-drag');
+            const file = e.dataTransfer.files[0];
+            if (file) { const dt = new DataTransfer(); dt.items.add(file); document.getElementById('importar-file-input').files = dt.files; onImportarFileChange({ target: { files: [file] } }); }
+        });
+    }
+
+    // Modal confirmar
+    document.getElementById('confirmar-ok')?.addEventListener('click', () => {
+        MM.cerrar('modal-confirmar');
+        const cb = _confirmarCb; _confirmarCb = null;
+        cb?.();
+    });
+    document.getElementById('confirmar-cancelar')?.addEventListener('click', () => { _confirmarCb = null; MM.cerrar('modal-confirmar'); });
+
 }
 
 if (document.readyState === 'loading') {
@@ -969,8 +1019,3 @@ if (document.readyState === 'loading') {
 } else {
     _initBindings();
 }
-// Delegación para filter-chips (generados dinámicamente, no pueden tener onclick inline)
-document.addEventListener('click', e => {
-    const chip = e.target.closest('.filter-chip[data-filtro]');
-    if (chip) setFiltroEstado(chip.dataset.filtro);
-});

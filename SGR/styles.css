@@ -838,6 +838,16 @@
             fill: var(--text-muted);
         }
 
+        .fab-menu-item:disabled,
+        .fab-menu-item--disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .fab-menu-item--servicio {
+            color: var(--text-muted);
+        }
+
         /* ── Badge ── */
         .badge {
             display: inline-flex;
@@ -2898,3 +2908,191 @@
         .icon-danger {
             color: var(--c-red);
         }
+
+        /* ══════════════════════════════════════════════
+           BADGES DE ESTADO
+        ══════════════════════════════════════════════ */
+        .rack-badge {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.01em;
+            white-space: nowrap;
+        }
+
+        .rack-badge-inventario {
+            background: color-mix(in srgb, var(--c-blue) 15%, transparent);
+            color: var(--c-blue);
+        }
+
+        .rack-badge-servicio {
+            background: color-mix(in srgb, var(--c-green) 15%, transparent);
+            color: var(--c-green);
+        }
+
+        .rack-badge-baja {
+            background: color-mix(in srgb, var(--c-red) 12%, transparent);
+            color: var(--c-red);
+        }
+
+        /* Fila con baja: atenuar */
+        tr.rack-estado-baja td {
+            opacity: 0.55;
+        }
+
+        /* ══════════════════════════════════════════════
+           BOTÓN DAR DE BAJA
+        ══════════════════════════════════════════════ */
+        .baja-divider {
+            height: 1px;
+            background: var(--border);
+            margin: 0.5rem 0;
+        }
+
+        .btn-baja {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            width: 100%;
+            background: transparent;
+            border: 1px solid color-mix(in srgb, var(--c-red) 40%, transparent);
+            border-radius: var(--radius);
+            color: var(--c-red);
+            font-size: 0.88rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s;
+        }
+
+        .btn-baja:hover {
+            background: color-mix(in srgb, var(--c-red) 8%, transparent);
+            border-color: var(--c-red);
+        }
+
+        .btn-baja--reactivar {
+            border-color: color-mix(in srgb, var(--c-green) 40%, transparent);
+            color: var(--c-green);
+        }
+
+        .btn-baja--reactivar:hover {
+            background: color-mix(in srgb, var(--c-green) 8%, transparent);
+            border-color: var(--c-green);
+        }
+
+        /* ══════════════════════════════════════════════
+           STAT CHIPS Y BARRAS DE DISTRIBUCIÓN
+        ══════════════════════════════════════════════ */
+        .rack-dist-bar {
+            display: grid;
+            grid-template-columns: 80px 1fr 28px;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.4rem;
+        }
+
+        .rack-dist-label {
+            font-size: 0.78rem;
+            font-weight: 600;
+            text-align: right;
+        }
+
+        .rack-dist-label.dist-inventario { color: var(--c-blue); }
+        .rack-dist-label.dist-servicio   { color: var(--c-green); }
+        .rack-dist-label.dist-baja       { color: var(--c-red); }
+
+        .rack-dist-bar-track {
+            height: 6px;
+            background: var(--border);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .rack-dist-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        .rack-dist-bar-fill.dist-inventario { background: var(--c-blue); }
+        .rack-dist-bar-fill.dist-servicio   { background: var(--c-green); }
+        .rack-dist-bar-fill.dist-baja       { background: var(--c-red); }
+
+        .rack-dist-count {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-align: right;
+        }
+
+        .dist-inventario { color: var(--c-blue); }
+        .dist-servicio   { color: var(--c-green); }
+        .dist-baja       { color: var(--c-red); }
+
+        .dist-card {
+            grid-column: 1 / -1;
+        }
+
+        /* ══════════════════════════════════════════════
+           CAMPO REQUERIDO
+        ══════════════════════════════════════════════ */
+        .required {
+            color: var(--c-red);
+            margin-left: 2px;
+        }
+
+        /* ══════════════════════════════════════════════
+           TABLA: columna TD rack num y muted
+        ══════════════════════════════════════════════ */
+        .td-rack-num {
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .td-muted {
+            color: var(--text-muted);
+        }
+
+        .td-sm {
+            font-size: 0.82rem;
+        }
+
+        /* ══════════════════════════════════════════════
+           FILTER CHIPS — labels actualizados
+        ══════════════════════════════════════════════ */
+        .filter-chips-row,
+        .filter-chips-inv {
+            display: flex;
+            gap: 0.4rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-chips-inv {
+            padding: 0 1rem 0.75rem;
+        }
+
+        /* Tabla con columnas de ancho igual */
+        .table-equal-cols {
+            table-layout: fixed;
+            width: 100%;
+        }
+
+        .table-equal-cols th,
+        .table-equal-cols td {
+            width: calc(100% / 7);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* 4 columnas iguales (tabla servicio) */
+        .table-eq-4 th,
+        .table-eq-4 td {
+            width: 25%;
+        }
+
+        .td-center { text-align: center; }
