@@ -775,6 +775,7 @@
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
             border: none;
             cursor: pointer;
+            position: relative;
             transition: transform var(--t-ui), filter var(--t-ui);
         }
 
@@ -782,7 +783,20 @@
             transform: rotate(45deg);
         }
 
-        .fab-main-btn .svg-icon,
+        .fab-main-btn .svg-icon {
+            width: 24px;
+            height: 24px;
+            fill: var(--c-white);
+            position: absolute;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+
+        .fab-icon-add  { opacity: 1;  transform: rotate(0deg); }
+        .fab-icon-close{ opacity: 0;  transform: rotate(90deg); }
+
+        .fab-main-btn.active .fab-icon-add   { opacity: 0;  transform: rotate(90deg); }
+        .fab-main-btn.active .fab-icon-close { opacity: 1;  transform: rotate(0deg); }
+
         .btn-scroll-top .svg-icon {
             width: 24px;
             height: 24px;
