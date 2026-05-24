@@ -1,5 +1,10 @@
+// ═══════════════════════════════════════════════════════
+//  CONFIGURACIÓN DE CLAVE DE APLICACIÓN (NAMESPACE)
+// ═══════════════════════════════════════════════════════
+const APP_KEY = 'RCK_';
+
 (function () {
-    try { if (localStorage.getItem('RCK_dark') === '1') document.documentElement.classList.add('dark-mode'); } catch (e) { }
+    try { if (localStorage.getItem(APP_KEY + 'dark') === '1') document.documentElement.classList.add('dark-mode'); } catch (e) { }
 }());
 
 // ═══════════════════════════════════════════════════════
@@ -56,7 +61,7 @@ function _sanitizarRack(r) {
         patrimonio,
         marca: _s(r.marca, 50),
         modelo: _s(r.modelo, 50),
-        serial: _s(r.serial, 80),
+        identificador: _s(r.identificador || r.serial || id.toUpperCase(), 80),
         unidades: Number.isInteger(r.unidades) && r.unidades > 0 ? r.unidades : null,
         notas: _s(r.notas, 200),
         edificio: _s(r.edificio, 80),
@@ -75,7 +80,7 @@ function sanitizarEstado(raw) {
 //  STATE
 // ═══════════════════════════════════════════════════════
 let state = { racks: [] };
-const CFG_DATA = 'RCK_data';
+const CFG_DATA = APP_KEY + 'data'; // Ahora es dinámico
 
 function guardar() {
     try { localStorage.setItem(CFG_DATA, JSON.stringify(state)); } catch (_) { }
@@ -132,7 +137,8 @@ const historial = (() => {
 const MM = (() => {
     let _mdDown = false;
     let _nav = false, _back = false, _ignorar = false;
-    if (!sessionStorage.getItem('_RCK_histBase')) sessionStorage.setItem('_RCK_histBase', String(window.history.length));
+    const HIST_KEY = '_' + APP_KEY + 'histBase';
+    if (!sessionStorage.getItem(HIST_KEY)) sessionStorage.setItem(HIST_KEY, String(window.history.length));
     window.addEventListener('popstate', () => {
         if (_ignorar) { _ignorar = false; return; }
         const abiertos = [...document.querySelectorAll('.modal.show')];
@@ -215,7 +221,7 @@ function toggleDarkMode() {
     const dark = document.documentElement.classList.toggle('dark-mode');
     const iconUse = document.getElementById('dark-icon-use');
     if (iconUse) iconUse.setAttribute('href', dark ? '#icon-sun' : '#icon-moon');
-    try { localStorage.setItem('RCK_dark', dark ? '1' : '0'); } catch (_) { }
+    try { localStorage.setItem(APP_KEY + 'dark', dark ? '1' : '0'); } catch (_) { } // Actualizado
 }
 
 // ═══════════════════════════════════════════════════════
@@ -249,7 +255,7 @@ function switchTab(tab) {
     ['dashboard', 'servicio', 'inventario'].forEach(t =>
         document.getElementById(`tab-${t}`).classList.toggle('activa', t === tab)
     );
-    try { localStorage.setItem('RCK_tab', tab); } catch (_) { }
+    try { localStorage.setItem(APP_KEY + 'tab', tab); } catch (_) { }
     const headerTabTitle = document.getElementById('header-tab-title');
     if (headerTabTitle) headerTabTitle.innerHTML = `<svg class="svg-icon"><use href="${TAB_ICONS[tab]}"/></svg> ${TAB_LABELS[tab]}`;
 
@@ -294,7 +300,10 @@ const UI = {
         if (!disponibles.length) { toast('No hay racks disponibles para poner en servicio', 'error'); return; }
         const sel = document.getElementById('servicio-rack-select');
         sel.innerHTML = '<option value="">— Seleccioná un rack disponible —</option>' +
-            disponibles.map(r => `<option value="${esc(r.id)}">${esc(r.numero)}${r.marca ? ' · ' + esc(r.marca) : ''}${r.modelo ? ' · ' + esc(r.modelo) : ''}</option>`).join('');
+            disponibles.map(r => {
+                const partes = [r.patrimonio, r.unidades ? r.unidades + 'U' : null, r.marca].filter(Boolean);
+                return `<option value="${esc(r.id)}">${esc(partes.join(' · '))}</option>`;
+            }).join('');
         sel.value = '';
         sel.classList.remove('error');
         ['servicio-edificio', 'servicio-piso', 'servicio-dependencia', 'servicio-numero'].forEach(id => {
@@ -340,7 +349,6 @@ function _leerFormRack(sufijo) {
         patrimonio: g('patrimonio'),
         marca: g('marca'),
         modelo: g('modelo'),
-        serial: g('serial'),
         unidades: parseInt(document.getElementById(`rack-unidades-${sufijo}`)?.value) || null,
         notas: g('notas'),
     };
@@ -349,18 +357,23 @@ function _leerFormRack(sufijo) {
 function guardarNuevoRack() {
     const datos = _leerFormRack('nuevo');
     const patEl = document.getElementById('rack-patrimonio-nuevo');
-    const uEl   = document.getElementById('rack-unidades-nuevo');
+    const uEl = document.getElementById('rack-unidades-nuevo');
     let ok = true;
     if (!datos.patrimonio) { patEl.classList.add('error'); ok = false; }
-    if (!datos.unidades)   { uEl.classList.add('error');   ok = false; }
+    if (!datos.unidades) { uEl.classList.add('error'); ok = false; }
     if (!ok) { toast('Patrimonio y Unidades son obligatorios', 'error'); return; }
-    if (state.racks.some(r => r.patrimonio.toLowerCase() === datos.patrimonio.toLowerCase())) {
+    if (datos.patrimonio.toLowerCase() !== 'no' && state.racks.some(r => r.patrimonio.toLowerCase() === datos.patrimonio.toLowerCase())) {
         patEl.classList.add('error');
         toast(`Ya existe un rack con patrimonio "${datos.patrimonio}"`, 'error');
         return;
     }
     historial.empujar(`Agregar rack (patrimonio ${datos.patrimonio})`);
-    state.racks.push({ id: uid(), estado: 'inventario', numero: '', ...datos });
+
+    // CREACIÓN DEL IDENTIFICADOR BASADO EN EL ID
+    const nuevoId = uid();
+    const identificadorAutogenerado = nuevoId.toUpperCase();
+
+    state.racks.push({ id: nuevoId, identificador: identificadorAutogenerado, estado: 'inventario', numero: '', ...datos });
     guardar(); renderTodo(); MM.cerrar('modal-rack-nuevo');
     toast(`Rack agregado al inventario`);
 }
@@ -376,7 +389,7 @@ function abrirModalEditarRack(id) {
     set('patrimonio', rack.patrimonio);
     set('marca', rack.marca);
     set('modelo', rack.modelo);
-    set('serial', rack.serial);
+    set('identificador', rack.identificador);
     set('notas', rack.notas);
     const uEl = document.getElementById('rack-unidades-editar');
     if (uEl) { uEl.value = rack.unidades ?? ''; uEl.classList.remove('error'); }
@@ -393,16 +406,73 @@ function abrirModalEditarRack(id) {
     MM.abrir('modal-rack-editar');
 }
 
+let _editandoServicioId = null;
+
+function abrirModalEditarServicio(id) {
+    const rack = state.racks.find(r => r.id === id); if (!rack) return;
+    _editandoServicioId = id;
+    const set = (fid, v) => {
+        const el = document.getElementById(fid);
+        if (el) { el.value = v ?? ''; el.classList.remove('error'); }
+    };
+    set('editar-servicio-numero', rack.numero);
+    set('editar-servicio-edificio', rack.edificio);
+    set('editar-servicio-piso', rack.piso);
+    set('editar-servicio-dependencia', rack.dependencia);
+    const info = document.getElementById('editar-servicio-info');
+    if (info) {
+        const partes = [rack.patrimonio, rack.unidades ? rack.unidades + 'U' : null, rack.marca, rack.modelo].filter(Boolean);
+        info.textContent = partes.join(' · ');
+    }
+    MM.abrir('modal-rack-editar-servicio');
+}
+
+function guardarEditarServicio() {
+    if (!_editandoServicioId) return;
+    const numEl = document.getElementById('editar-servicio-numero');
+    const numero = numEl?.value.trim() || '';
+    if (!numero) { numEl?.classList.add('error'); toast('El número de rack es obligatorio', 'error'); return; }
+    if (state.racks.some(r => r.id !== _editandoServicioId && r.numero && r.numero.toLowerCase() === numero.toLowerCase())) {
+        numEl?.classList.add('error');
+        toast(`El número "${numero}" ya está asignado a otro rack`, 'error');
+        return;
+    }
+    const rack = state.racks.find(r => r.id === _editandoServicioId); if (!rack) return;
+    historial.empujar(`Editar rack en servicio (${rack.numero})`);
+    rack.numero = numero;
+    rack.edificio = document.getElementById('editar-servicio-edificio')?.value.trim() || '';
+    rack.piso = document.getElementById('editar-servicio-piso')?.value.trim() || '';
+    rack.dependencia = document.getElementById('editar-servicio-dependencia')?.value.trim() || '';
+    guardar(); renderTodo(); MM.cerrar('modal-rack-editar-servicio');
+    toast('Rack actualizado');
+}
+
+function quitarDeServicio() {
+    if (!_editandoServicioId) return;
+    const rack = state.racks.find(r => r.id === _editandoServicioId); if (!rack) return;
+    confirmar(
+        `¿Quitar el rack "${rack.numero}" del servicio?`,
+        'Volverá al inventario como disponible.',
+        () => {
+            historial.empujar(`Quitar de servicio rack (${rack.numero})`);
+            rack.estado = 'inventario';
+            guardar(); renderTodo(); MM.cerrar('modal-rack-editar-servicio');
+            toast('Rack devuelto al inventario', 'info');
+        }
+    );
+}
+
+
 function guardarEditarRack() {
     if (!_editandoRackId) return;
     const datos = _leerFormRack('editar');
     const patEl = document.getElementById('rack-patrimonio-editar');
-    const uEl   = document.getElementById('rack-unidades-editar');
+    const uEl = document.getElementById('rack-unidades-editar');
     let ok = true;
     if (!datos.patrimonio) { patEl.classList.add('error'); ok = false; }
-    if (!datos.unidades)   { uEl.classList.add('error');   ok = false; }
+    if (!datos.unidades) { uEl.classList.add('error'); ok = false; }
     if (!ok) { toast('Patrimonio y Unidades son obligatorios', 'error'); return; }
-    if (state.racks.some(r => r.id !== _editandoRackId && r.patrimonio.toLowerCase() === datos.patrimonio.toLowerCase())) {
+    if (datos.patrimonio.toLowerCase() !== 'no' && state.racks.some(r => r.id !== _editandoRackId && r.patrimonio.toLowerCase() === datos.patrimonio.toLowerCase())) {
         patEl.classList.add('error');
         toast(`Ya existe un rack con patrimonio "${datos.patrimonio}"`, 'error');
         return;
@@ -468,14 +538,14 @@ function confirmarPonerEnServicio() {
         toast(`El número "${numero}" ya está asignado a otro rack`, 'error');
         return;
     }
-    const edificio    = document.getElementById('servicio-edificio')?.value.trim() || '';
-    const piso        = document.getElementById('servicio-piso')?.value.trim() || '';
+    const edificio = document.getElementById('servicio-edificio')?.value.trim() || '';
+    const piso = document.getElementById('servicio-piso')?.value.trim() || '';
     const dependencia = document.getElementById('servicio-dependencia')?.value.trim() || '';
     historial.empujar(`Poner en servicio rack (patrimonio ${rack.patrimonio})`);
-    rack.estado      = 'servicio';
-    rack.numero      = numero;
-    rack.edificio    = edificio;
-    rack.piso        = piso;
+    rack.estado = 'servicio';
+    rack.numero = numero;
+    rack.edificio = edificio;
+    rack.piso = piso;
     rack.dependencia = dependencia;
     guardar(); renderTodo(); MM.cerrar('modal-rack-servicio');
     toast(`Rack ${numero} puesto en servicio`);
@@ -494,7 +564,7 @@ function actualizarFabServicio() {
 // ═══════════════════════════════════════════════════════
 const ESTADO_BADGE = {
     inventario: '<span class="rack-badge rack-badge-inventario">Disponible</span>',
-    baja:       '<span class="rack-badge rack-badge-baja">Baja</span>',
+    baja: '<span class="rack-badge rack-badge-baja">Baja</span>',
 };
 function _badgeEstado(r) {
     if (r.estado === 'servicio') {
@@ -509,7 +579,7 @@ function _getRacksFiltrados() {
     let racks = [...state.racks];
     if (busq) {
         racks = racks.filter(r => {
-            const h = normalizarTexto([r.numero, r.patrimonio, r.marca, r.modelo, r.serial, r.notas].join(' '));
+            const h = normalizarTexto([r.numero, r.patrimonio, r.marca, r.modelo, r.identificador, r.notas].join(' '));
             return busq.split(' ').every(t => h.includes(t));
         });
     }
@@ -517,21 +587,13 @@ function _getRacksFiltrados() {
     return racks;
 }
 
-function _filaRack(r) {
-    return `<tr class="tr-clickable rack-estado-${r.estado}" data-rack-id="${esc(r.id)}">
-        <td class="td-rack-num">${esc(r.patrimonio || '—')}</td>
-        <td>${esc(r.marca || '—')}</td>
-        <td class="td-muted">${esc(r.modelo || '—')}</td>
-        <td>${_badgeEstado(r)}</td>
-    </tr>`;
-}
 
 function _filaRackInv(r) {
     return `<tr class="tr-clickable rack-estado-${r.estado}" data-rack-id="${esc(r.id)}">
         <td class="td-muted">${esc(r.patrimonio || '—')}</td>
         <td>${esc(r.marca || '—')}</td>
         <td class="td-muted">${esc(r.modelo || '—')}</td>
-        <td class="td-muted">${esc(r.serial || '—')}</td>
+        <td class="td-muted">${esc(r.identificador || '—')}</td>
         <td class="td-muted td-center">${r.unidades != null ? esc(String(r.unidades)) + 'U' : '—'}</td>
         <td>${_badgeEstado(r)}</td>
     </tr>`;
@@ -550,27 +612,17 @@ function _filaRackServicio(r) {
 //  RENDER DASHBOARD
 // ═══════════════════════════════════════════════════════
 function renderDashboard() {
-    const racks = _getRacksFiltrados();
-    const tbody = document.getElementById('tabla-racks');
-    const empty = document.getElementById('racks-empty');
-    if (!racks.length) {
-        tbody.innerHTML = ''; empty.classList.remove('empty-state-hidden');
-    } else {
-        empty.classList.add('empty-state-hidden');
-        tbody.innerHTML = racks.map(_filaRack).join('');
-    }
-
     // Stats sidebar
     const all = state.racks;
     const total = all.length;
     const enServ = all.filter(r => r.estado === 'servicio').length;
-    const enInv  = all.filter(r => r.estado === 'inventario').length;
+    const enInv = all.filter(r => r.estado === 'inventario').length;
     const enBaja = all.filter(r => r.estado === 'baja').length;
 
     const distRows = total ? [
-        { label: 'Disponible',  n: enInv,  cls: 'dist-inventario' },
+        { label: 'Disponible', n: enInv, cls: 'dist-inventario' },
         { label: 'En servicio', n: enServ, cls: 'dist-servicio' },
-        { label: 'Baja',        n: enBaja, cls: 'dist-baja' },
+        { label: 'Baja', n: enBaja, cls: 'dist-baja' },
     ].filter(e => e.n > 0).map(e => {
         const pct = Math.round((e.n / total) * 100);
         return `<div class="rack-dist-bar">
@@ -617,7 +669,7 @@ function renderServicio() {
     let racks = state.racks.filter(r => r.estado === 'servicio');
     if (busq) {
         racks = racks.filter(r => {
-            const h = normalizarTexto([r.numero, r.patrimonio, r.marca, r.modelo, r.serial, r.notas].join(' '));
+            const h = normalizarTexto([r.numero, r.patrimonio, r.marca, r.modelo, r.identificador, r.notas].join(' '));
             return busq.split(' ').every(t => h.includes(t));
         });
     }
@@ -682,9 +734,9 @@ let _importarParsed = null;
 function onImportarFileChange(e) {
     const file = e.target.files[0]; if (!file) return;
     const label = document.getElementById('importar-dropzone-label');
-    const zone  = document.getElementById('importar-dropzone');
-    const btn   = document.getElementById('importar-confirmar-btn');
-    const btnC  = document.getElementById('importar-combinar-btn');
+    const zone = document.getElementById('importar-dropzone');
+    const btn = document.getElementById('importar-confirmar-btn');
+    const btnC = document.getElementById('importar-combinar-btn');
     if (file.size > 5 * 1024 * 1024) {
         _importarParsed = null;
         label.innerHTML = '<span class="import-fail">✗ Archivo demasiado grande (máx 5 MB)</span>';
@@ -748,7 +800,7 @@ function restablecerDatos() {
 //  GIST SYNC
 // ═══════════════════════════════════════════════════════
 const GistSync = (() => {
-    const CFG_KEY = 'RCK_gist_cfg', FILENAME = 'racks_data.json', DEBOUNCE_MS = 3000;
+    const CFG_KEY = APP_KEY + 'gist_cfg', FILENAME = 'racks_data.json', DEBOUNCE_MS = 3000;
     const RE_GIST = /^[a-f0-9]{20,40}$/i;
     let _cfg = { token: '', gistId: '', lastSync: null, auto: false };
     let _debounceTimer = null, _subiendo = false;
@@ -756,7 +808,7 @@ const GistSync = (() => {
     function _cargarCfg() { try { const c = parseSeguro(localStorage.getItem(CFG_KEY) || 'null'); if (c) _cfg = { ..._cfg, ...c }; } catch (_) { } _actualizarBotonesAjustes(); }
     function _guardarCfg() { try { localStorage.setItem(CFG_KEY, JSON.stringify(_cfg)); } catch (_) { } }
     function _spinStart() { document.getElementById('btn-ajustes')?.classList.add('icon-btn-spinning'); }
-    function _spinStop()  { document.getElementById('btn-ajustes')?.classList.remove('icon-btn-spinning'); }
+    function _spinStop() { document.getElementById('btn-ajustes')?.classList.remove('icon-btn-spinning'); }
     function _setBusy(busy) {
         _subiendo = busy;
         ['btn-gist-subir', 'btn-gist-bajar'].forEach(id => { const b = document.getElementById(id); if (b) b.disabled = busy; });
@@ -875,10 +927,24 @@ const GistSync = (() => {
 // ═══════════════════════════════════════════════════════
 document.addEventListener('keydown', e => {
     const modalOpen = document.body.classList.contains('modal-open');
+    
     if (e.key === 'Escape') {
         if (modalOpen) { MM.cerrarTop(); return; }
         if (_fabOpen) { cerrarFab(); return; }
+        
+        // Nueva lógica para el buscador
+        const b = document.getElementById('busq-global');
+        if (b) {
+            if (b.value) {
+                limpiarBusqueda();
+                return; // Limpia el texto y frena acá
+            } else if (document.activeElement === b) {
+                b.blur();
+                return; // Si ya estaba vacío y tenía foco, se lo quita
+            }
+        }
     }
+
     if (e.ctrlKey && !e.altKey) {
         if (e.key === 'z' || e.key === 'Z') { e.preventDefault(); historial.undo(); return; }
         if (e.key === 'y' || e.key === 'Y') { e.preventDefault(); historial.redo(); return; }
@@ -910,10 +976,10 @@ document.addEventListener('input', e => {
 // ═══════════════════════════════════════════════════════
 cargar();
 
-try { if (localStorage.getItem('RCK_dark') === '1') { document.getElementById('dark-icon-use')?.setAttribute('href', '#icon-sun'); } } catch (_) { }
+try { if (localStorage.getItem(APP_KEY + 'dark') === '1') { document.getElementById('dark-icon-use')?.setAttribute('href', '#icon-sun'); } } catch (_) { }
 
 try {
-    const t = localStorage.getItem('RCK_tab');
+    const t = localStorage.getItem(APP_KEY + 'tab');
     if (t && ['servicio', 'inventario'].includes(t)) {
         document.getElementById('panel-dashboard').classList.remove('activa');
         document.getElementById(`panel-${t}`).classList.add('activa');
@@ -953,6 +1019,11 @@ function _initBindings() {
     document.getElementById('fab-rack-servicio')?.addEventListener('click', () => UI.abrirServicio());
     document.getElementById('servicio-confirmar-btn')?.addEventListener('click', confirmarPonerEnServicio);
     document.getElementById('servicio-cancelar-btn')?.addEventListener('click', () => MM.cerrar('modal-rack-servicio'));
+
+    // Modal editar rack en servicio
+    document.getElementById('editar-servicio-guardar-btn')?.addEventListener('click', guardarEditarServicio);
+    document.getElementById('editar-servicio-quitar-btn')?.addEventListener('click', quitarDeServicio);
+    document.getElementById('editar-servicio-cancelar-btn')?.addEventListener('click', () => MM.cerrar('modal-rack-editar-servicio'));
     // Cerrar FAB al hacer click fuera
     document.addEventListener('click', e => {
         if (_fabOpen && !e.target.closest('#fab-container')) cerrarFab();
@@ -972,11 +1043,13 @@ function _initBindings() {
     document.getElementById('rack-editar-baja-btn')?.addEventListener('click', toggleBajaRack);
 
     // Clics en filas de tablas
-    ['tabla-racks', 'tabla-servicio', 'tabla-inventario'].forEach(tid => {
-        document.getElementById(tid)?.addEventListener('click', e => {
-            const tr = e.target.closest('tr[data-rack-id]');
-            if (tr) abrirModalEditarRack(tr.dataset.rackId);
-        });
+    document.getElementById('tabla-servicio')?.addEventListener('click', e => {
+        const tr = e.target.closest('tr[data-rack-id]');
+        if (tr) abrirModalEditarServicio(tr.dataset.rackId);
+    });
+    document.getElementById('tabla-inventario')?.addEventListener('click', e => {
+        const tr = e.target.closest('tr[data-rack-id]');
+        if (tr) abrirModalEditarRack(tr.dataset.rackId);
     });
 
     // Ajustes
