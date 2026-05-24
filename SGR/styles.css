@@ -239,7 +239,7 @@ body.modal-open {
 .header-logo-icon {
     width: 28px;
     height: 28px;
-    fill: var(--text-main);
+    fill: var(--c-red);
 }
 
 

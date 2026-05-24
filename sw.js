@@ -1,4 +1,4 @@
-const CACHE_NAME = 'IDR-250524.1650';
+const CACHE_NAME = 'IDR-250524.1833';
 const urlsToCache = [
   './',
   './index.html',
