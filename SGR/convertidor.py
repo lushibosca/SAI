@@ -5,12 +5,20 @@ import string
 import time
 
 def generar_uid():
-    """Genera un ID alfanumérico único imitando el uid() de la PWA."""
-    # Convertimos el timestamp a base 36 (similar a Date.now().toString(36))
-    timestamp = __import__('numpy').base_repr(int(time.time() * 1000), 36).lower() if __import__('importlib.util').find_spec('numpy') else str(int(time.time() * 1000))
-    # Por simplicidad y evitar dependencias externas, usamos un formato aleatorio 100% compatible
-    rnd = ''.join(random.choices(string.ascii_lowercase + string.digits, k=12))
-    return rnd
+    """Genera un ID alfanumérico idéntico al uid() de app.js"""
+    # 1. Convertimos el timestamp actual a base 36
+    entero = int(time.time() * 1000)
+    caracteres = '0123456789abcdefghijklmnopqrstuvwxyz'
+    timestamp = ''
+    while entero > 0:
+        entero, resto = divmod(entero, 36)
+        timestamp = caracteres[resto] + timestamp
+        
+    # 2. Generamos 4 caracteres aleatorios
+    rnd = ''.join(random.choices(string.ascii_lowercase + string.digits, k=4))
+    
+    # 3. Concatenamos igual que en JS
+    return timestamp + rnd
 
 def parsear_datos(archivo_entrada, archivo_salida):
     racks = []
@@ -58,8 +66,8 @@ def parsear_datos(archivo_entrada, archivo_salida):
         es_deposito = 'deposito' in dep_raw.lower()
         estado = 'servicio' if (numero and not es_deposito) else 'inventario'
         
-        # Formatear el número (rellena con ceros a la izquierda hasta 4 dígitos)
-        numero_final = numero.zfill(4) if estado == 'servicio' else ''
+        # Mantener el número exacto como quedó después de limpiarlo
+        numero_final = numero if estado == 'servicio' else ''
         
         racks.append({
             "id": nuevo_id,

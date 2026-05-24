@@ -449,6 +449,47 @@ body.modal-open {
     grid-column: 1 / -1;
 }
 
+/* ── Encabezados Ordenables (Sorting) ── */
+.th-sortable {
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    padding-right: 1.5rem !important;
+    transition: background var(--t-fast), color var(--t-fast);
+}
+
+.th-sortable:hover {
+    background: rgba(0, 0, 0, 0.03);
+    color: var(--text-main);
+}
+
+.dark-mode .th-sortable:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+/* Flecha neutra por defecto */
+.th-sortable::after {
+    content: '↕';
+    position: absolute;
+    right: 0.4rem;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.2;
+    font-size: 0.85em;
+}
+
+/* Flechas activas (Ascendente / Descendente) */
+.th-sortable.sort-asc::after {
+    content: '↑';
+    opacity: 1;
+    color: var(--accent);
+}
+
+.th-sortable.sort-desc::after {
+    content: '↓';
+    opacity: 1;
+    color: var(--accent);
+}
 
 /* ════════════════════════════════════════════════════════
    TABLAS & EMPTY STATE

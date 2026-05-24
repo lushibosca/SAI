@@ -583,8 +583,7 @@ function _getRacksFiltrados() {
             return busq.split(' ').every(t => h.includes(t));
         });
     }
-    racks.sort((a, b) => (a.patrimonio || '').localeCompare(b.patrimonio || '', 'es', { numeric: true }));
-    return racks;
+    return _ordenarArray(racks, _sortInv.col, _sortInv.dir);
 }
 
 
@@ -606,6 +605,34 @@ function _filaRackServicio(r) {
         <td class="td-muted">${esc(r.piso || '—')}</td>
         <td class="td-muted">${esc(r.dependencia || '—')}</td>
     </tr>`;
+}
+
+// ═══════════════════════════════════════════════════════
+//  ORDENAMIENTO (SORTING)
+// ═══════════════════════════════════════════════════════
+let _sortInv = { col: 'patrimonio', dir: 1 }; // 1: asc, -1: desc
+let _sortServ = { col: 'numero', dir: 1 };
+
+function _ordenarArray(arr, col, dir) {
+    return arr.sort((a, b) => {
+        let valA = a[col] ?? '';
+        let valB = b[col] ?? '';
+        // Manejo numérico puro (ej: unidades)
+        if (typeof valA === 'number' && typeof valB === 'number') {
+            return (valA - valB) * dir;
+        }
+        // Manejo alfanumérico inteligente ("10" va después de "2")
+        return String(valA).localeCompare(String(valB), 'es', { numeric: true }) * dir;
+    });
+}
+
+function _actualizarIndicadoresSort(panelId, sortObj) {
+    document.querySelectorAll(`#${panelId} th[data-sort]`).forEach(th => {
+        th.classList.remove('sort-asc', 'sort-desc');
+        if (th.dataset.sort === sortObj.col) {
+            th.classList.add(sortObj.dir === 1 ? 'sort-asc' : 'sort-desc');
+        }
+    });
 }
 
 // ═══════════════════════════════════════════════════════
@@ -673,7 +700,8 @@ function renderServicio() {
             return busq.split(' ').every(t => h.includes(t));
         });
     }
-    racks.sort((a, b) => a.numero.localeCompare(b.numero, 'es', { numeric: true }));
+    racks = _ordenarArray(racks, _sortServ.col, _sortServ.dir);
+    _actualizarIndicadoresSort('panel-servicio', _sortServ);
 
     const tbody = document.getElementById('tabla-servicio');
     const empty = document.getElementById('servicio-empty');
@@ -692,6 +720,7 @@ function renderServicio() {
 //  RENDER INVENTARIO
 // ═══════════════════════════════════════════════════════
 function renderInventario() {
+    _actualizarIndicadoresSort('panel-inventario', _sortInv);
     const racks = _getRacksFiltrados();
     const tbody = document.getElementById('tabla-inventario');
     const empty = document.getElementById('inventario-empty');
@@ -927,11 +956,11 @@ const GistSync = (() => {
 // ═══════════════════════════════════════════════════════
 document.addEventListener('keydown', e => {
     const modalOpen = document.body.classList.contains('modal-open');
-    
+
     if (e.key === 'Escape') {
         if (modalOpen) { MM.cerrarTop(); return; }
         if (_fabOpen) { cerrarFab(); return; }
-        
+
         // Nueva lógica para el buscador
         const b = document.getElementById('busq-global');
         if (b) {
@@ -1095,6 +1124,24 @@ function _initBindings() {
     });
     document.getElementById('confirmar-cancelar')?.addEventListener('click', () => { _confirmarCb = null; MM.cerrar('modal-confirmar'); });
 
+    // Ordenamiento de tablas al hacer clic en los headers
+    document.querySelectorAll('#panel-inventario th.th-sortable').forEach(th => {
+        th.addEventListener('click', () => {
+            const col = th.dataset.sort;
+            if (_sortInv.col === col) _sortInv.dir *= -1; // Invierte dirección
+            else { _sortInv.col = col; _sortInv.dir = 1; } // Nueva columna
+            renderInventario();
+        });
+    });
+
+    document.querySelectorAll('#panel-servicio th.th-sortable').forEach(th => {
+        th.addEventListener('click', () => {
+            const col = th.dataset.sort;
+            if (_sortServ.col === col) _sortServ.dir *= -1;
+            else { _sortServ.col = col; _sortServ.dir = 1; }
+            renderServicio();
+        });
+    });
 }
 
 if (document.readyState === 'loading') {
