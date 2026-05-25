@@ -342,38 +342,10 @@ body.modal-open {
    ════════════════════════════════════════════════════════ */
 
 /* ── Limpiar búsqueda ── */
-#busq-clear-btn {
-    display: none;
-    position: absolute;
-    right: 0.6rem;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 28px;
-    height: 28px;
-    padding: 0;
-    background: transparent;
-    border: none;
-    color: var(--text-muted);
-    cursor: pointer;
-    border-radius: var(--radius);
-    align-items: center;
-    justify-content: center;
-}
+/* ════════════════════════════
+   SEARCH BAR
+   ════════════════════════════ */
 
-/* AGREGAR ESTO PARA LA 'X' */
-#busq-clear-btn.visible {
-    display: flex;
-}
-
-/* AGREGAR ESTO PARA EL FILTRO */
-.busq-filtro-select {
-    width: auto;
-    min-width: 120px;
-    flex-shrink: 0;
-    cursor: pointer;
-}
-
-/* ── Search bar barra de busqueda ── */
 .search-actions-bar {
     display: flex;
     gap: 0.5rem;
@@ -401,10 +373,13 @@ body.modal-open {
     margin-bottom: 0.75rem;
 }
 
+/* Input con espacio para lupa izq y dos botones der */
 .search-bar input {
     padding-left: 2.5rem;
+    padding-right: 4.8rem;
 }
 
+/* Lupa — solo icono decorativo, no es botón */
 .search-icon {
     position: absolute;
     left: 0.85rem;
@@ -414,17 +389,159 @@ body.modal-open {
     pointer-events: none;
 }
 
-/* ── Borde naranja cuando hay un filtro activo (tiene texto) ── */
+/* Botones dentro del input: sin transform, usan top/bottom 0 */
+#busq-clear-btn,
+.busq-filtro-btn {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 2.2rem;
+    padding: 0;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    opacity: 0.55;
+    transition: opacity var(--t-fast), color var(--t-fast);
+}
+
+#busq-clear-btn {
+    right: 2.2rem;
+}
+
+.busq-filtro-btn {
+    right: 0;
+    display: flex;
+}
+
+#busq-clear-btn.visible {
+    display: flex;
+}
+
+#busq-clear-btn:hover,
+#busq-clear-btn:active,
+.busq-filtro-btn:hover,
+.busq-filtro-btn:active,
+.busq-filtro-btn.activo {
+    opacity: 1;
+    color: var(--text-main);
+}
+
+
+/* Naranja cuando hay texto en el buscador */
 #busq-global:not(:placeholder-shown),
 #busq-global:not(:placeholder-shown):focus {
     border-color: var(--c-orange);
 }
 
-/* Pinta el ícono de la lupa y el botón de limpiar de naranja cuando hay filtro activo */
 .search-bar:has(#busq-global:not(:placeholder-shown)) .search-icon,
-.search-bar:has(#busq-global:not(:placeholder-shown)) #busq-clear-btn {
+.search-bar:has(#busq-global:not(:placeholder-shown)) #busq-clear-btn,
+.search-bar:has(#busq-global:not(:placeholder-shown)) .busq-filtro-btn {
     color: var(--c-orange);
     opacity: 1;
+}
+
+/* ════════════════════════════
+   FILTRO MENU DESPLEGABLE
+   ════════════════════════════ */
+
+.busq-filtro-menu {
+    position: fixed;
+    z-index: 9999;
+    width: 280px;
+    background: var(--bg-card);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+    overflow: hidden;
+}
+
+.busq-filtro-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.6rem 0.85rem;
+    border-bottom: 1.5px solid var(--border);
+    background: var(--bg-header);
+}
+
+.busq-filtro-header>span {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+}
+
+.busq-filtro-header button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    padding: 0.15rem 0.4rem;
+    border-radius: var(--radius-sm);
+    font-weight: 500;
+    transition: background var(--t-fast), color var(--t-fast);
+}
+
+.busq-filtro-header button:hover {
+    filter: var(--hover);
+}
+
+.busq-filtro-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+}
+
+.busq-filtro-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.6rem 0.85rem;
+    cursor: pointer;
+    font-size: 0.88rem;
+    transition: background var(--t-fast);
+    user-select: none;
+    overflow: hidden;
+    background: var(--bg-card);
+}
+
+.busq-filtro-item:hover {
+    filter: var(--hover);
+}
+
+.busq-filtro-item input[type="checkbox"] {
+    display: none;
+}
+
+.busq-filtro-item span {
+    color: var(--c-green);
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.busq-filtro-item::after {
+    content: '\2713';
+    color: var(--c-green);
+    font-size: 1rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    margin-left: 0.3rem;
+}
+
+.busq-filtro-item:has(input:not(:checked)) span {
+    color: var(--text-muted);
+    font-weight: 400;
+}
+
+.busq-filtro-item:has(input:not(:checked))::after {
+    visibility: hidden;
 }
 
 
@@ -435,7 +552,8 @@ body.modal-open {
 /* ── Grid de Estadísticas del Dashboard ── */
 .dash-stats-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr); /* Crea 3 columnas iguales */
+    grid-template-columns: repeat(3, 1fr);
+    /* Crea 3 columnas iguales */
     gap: 0.75rem;
     align-items: start;
 }
@@ -476,9 +594,9 @@ body.modal-open {
 }
 
 .th-sortable::after {
-    content: '';
     position: absolute;
-    right: 0.5rem;
+    right: 0.4rem;
+    /* Los junta un poquito para que se vean como un solo bloque */
 }
 
 /* Triángulo activo (Ascendente) */
@@ -1729,6 +1847,7 @@ kbd {
 .gist-quick-hidden {
     display: none;
 }
+
 /* ── Modal Edificios ── */
 .edificios-add-row {
     display: flex;

@@ -259,18 +259,12 @@
                         <use href="#icon-close" />
                     </svg>
                 </button>
+                <button id="busq-filtro-btn" title="Campos de búsqueda" class="busq-filtro-btn">
+                    <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/>
+                    </svg>
+                </button>
             </div>
-            <select id="busq-filtro" class="busq-filtro-select" title="Campo de búsqueda">
-                <option value="todo">Todo</option>
-                <option value="patrimonio">Patrimonio</option>
-                <option value="numero">Número</option>
-                <option value="marca">Marca / Mod</option>
-                <option value="identificador">Identificador</option>
-                <option value="unidades">Unidades</option>
-                <option value="edificio">Edificio</option>
-                <option value="dependencia">Dependencia</option>
-                <option value="estado">Estado</option>
-            </select>
         </div>
 
         <!-- ═══ PANEL DASHBOARD ═══ -->
@@ -296,6 +290,7 @@
         <th data-sort="edificio" class="th-sortable">Edificio</th>
         <th data-sort="piso" class="th-sortable">Piso</th>
         <th data-sort="dependencia" class="th-sortable">Dependencia</th>
+        <th>Patcheras</th>
     </tr>
 </thead>
                         <tbody id="tabla-servicio"></tbody>
@@ -322,12 +317,12 @@
                     <table class="table-equal-cols">
                         <thead>
                             <tr>
+                                <th data-sort="estado" class="th-sortable">Estado</th>
                                 <th data-sort="patrimonio" class="th-sortable">Patrimonio</th>
+                                <th data-sort="unidades" class="th-sortable">Unidades</th>
                                 <th data-sort="marca" class="th-sortable">Marca</th>
                                 <th data-sort="modelo" class="th-sortable">Modelo</th>
                                 <th data-sort="identificador" class="th-sortable">Identificador</th>
-                                <th data-sort="unidades" class="th-sortable">Unidades</th>
-                                <th data-sort="estado" class="th-sortable">Estado</th>
                             </tr>
                         </thead>
                         <tbody id="tabla-inventario"></tbody>
@@ -816,6 +811,24 @@
                     </svg> Cancelar
                 </button>
             </div>
+        </div>
+    </div>
+
+    <div id="busq-filtro-menu" class="busq-filtro-menu" hidden>
+        <div class="busq-filtro-header">
+            <span>CAMPOS</span>
+            <button id="busq-filtro-toggle-all">Desactivar todo</button>
+        </div>
+        <div class="busq-filtro-grid">
+            <label class="busq-filtro-item"><input type="checkbox" value="patrimonio" checked><span>Patrimonio</span></label>
+            <label class="busq-filtro-item"><input type="checkbox" value="numero" checked><span>Número</span></label>
+            <label class="busq-filtro-item"><input type="checkbox" value="marca" checked><span>Marca</span></label>
+            <label class="busq-filtro-item"><input type="checkbox" value="identificador" checked><span>Identificador</span></label>
+            <label class="busq-filtro-item"><input type="checkbox" value="unidades" checked><span>Unidades</span></label>
+            <label class="busq-filtro-item"><input type="checkbox" value="edificio" checked><span>Edificio</span></label>
+            <label class="busq-filtro-item"><input type="checkbox" value="dependencia" checked><span>Dependencia</span></label>
+            <label class="busq-filtro-item"><input type="checkbox" value="estado" checked><span>Estado</span></label>
+            <label class="busq-filtro-item"><input type="checkbox" value="notas" checked><span>Notas</span></label>
         </div>
     </div>
 

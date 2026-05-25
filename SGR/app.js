@@ -669,36 +669,72 @@ function _badgeEstado(r) {
     return ESTADO_BADGE[r.estado] || '';
 }
 
-function _coincideBusqueda(r, busq, campo) {
-    let h = '';
+function _getCamposBusq() {
+    const checks = document.querySelectorAll('#busq-filtro-menu input[type="checkbox"]:checked');
+    return Array.from(checks).map(c => c.value); // [] si no hay ninguno
+}
+function _guardarCamposBusq() {
+    try {
+        const vals = _getCamposBusq();
+        localStorage.setItem(APP_KEY + 'busq_campos', JSON.stringify(vals));
+    } catch(_) {}
+}
+function _restaurarCamposBusq() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(APP_KEY + 'busq_campos'));
+        if (!Array.isArray(saved)) return;
+        const allChecks = document.querySelectorAll('#busq-filtro-menu input[type="checkbox"]');
+        allChecks.forEach(cb => { cb.checked = saved.includes(cb.value); });
+        const total = allChecks.length;
+        const checked = saved.length;
+        const filtroToggleAll = document.getElementById('busq-filtro-toggle-all');
+        if (filtroToggleAll) filtroToggleAll.textContent = checked === total ? 'Desactivar todo' : 'Activar todo';
+        const filtroBtn = document.getElementById('busq-filtro-btn');
+        if (filtroBtn) filtroBtn.classList.toggle('con-filtro', checked < total);
+    } catch(_) {}
+}
 
-    // Preparamos los textos amigables para unidades y estado
+function _coincideBusqueda(r, busq, campos) {
     const estadoVis = r.estado === 'inventario' ? 'disponible' : r.estado;
     const uniVis = r.unidades ? r.unidades + 'u' : '';
 
-    if (campo === 'todo') h = [r.numero, r.patrimonio, r.marca, r.modelo, r.identificador, r.notas, r.edificio, r.piso, r.dependencia, uniVis, estadoVis].join(' ');
-    else if (campo === 'numero') h = r.numero;
-    else if (campo === 'patrimonio') h = r.patrimonio;
-    else if (campo === 'marca') h = [r.marca, r.modelo].join(' ');
-    else if (campo === 'identificador') h = r.identificador;
-    else if (campo === 'unidades') h = uniVis;
-    else if (campo === 'estado') h = estadoVis;
-    else if (campo === 'edificio') h = [r.edificio, r.piso].join(' ');
-    else if (campo === 'dependencia') h = r.dependencia;
+    const todosLosCampos = ['patrimonio','numero','marca','identificador','unidades','edificio','dependencia','estado','notas'];
+    const camposArr = Array.isArray(campos) ? campos : [campos];
+    if (!camposArr.length) return false;
+    const esTodo = camposArr.includes('todo') || todosLosCampos.every(c => camposArr.includes(c));
 
-    const textoNorm = normalizarTexto(h);
-    // Para edificio y dependencia se compara la frase completa (sin split por tokens)
-    // para evitar que "anexo b" matchee "anexo a", "anexo c", etc.
-    if (campo === 'edificio' || campo === 'dependencia') return textoNorm.includes(busq);
-    return busq.split(' ').every(t => textoNorm.includes(t));
+    const _textoParaCampo = (c) => {
+        if (c === 'numero') return r.numero || '';
+        if (c === 'patrimonio') return r.patrimonio || '';
+        if (c === 'marca') return [r.marca, r.modelo].join(' ');
+        if (c === 'identificador') return r.identificador || '';
+        if (c === 'unidades') return uniVis;
+        if (c === 'estado') return estadoVis;
+        if (c === 'edificio') return [r.edificio, r.piso].join(' ');
+        if (c === 'dependencia') return r.dependencia || '';
+        if (c === 'notas') return r.notas || '';
+        return '';
+    };
+
+    if (esTodo) {
+        const h = [r.numero, r.patrimonio, r.marca, r.modelo, r.identificador, r.notas, r.edificio, r.piso, r.dependencia, uniVis, estadoVis].join(' ');
+        return busq.split(' ').every(t => normalizarTexto(h).includes(t));
+    }
+
+    // Multi-campo: basta con que coincida en alguno
+    return camposArr.some(c => {
+        const h = normalizarTexto(_textoParaCampo(c));
+        if (c === 'edificio' || c === 'dependencia') return h.includes(busq);
+        return busq.split(' ').every(t => h.includes(t));
+    });
 }
 
 function _getRacksFiltrados() {
     const busq = normalizarTexto(document.getElementById('busq-global')?.value || '');
     let racks = [...state.racks];
-    const campo = document.getElementById('busq-filtro')?.value || 'todo';
     if (busq) {
-        racks = racks.filter(r => _coincideBusqueda(r, busq, campo));
+        const campos = _getCamposBusq();
+        racks = racks.filter(r => _coincideBusqueda(r, busq, campos));
     }
     return _ordenarArray(racks, _sortInv.col, _sortInv.dir);
 }
@@ -706,12 +742,12 @@ function _getRacksFiltrados() {
 
 function _filaRackInv(r) {
     return `<tr class="tr-clickable rack-estado-${r.estado}" data-rack-id="${esc(r.id)}">
+        <td>${_badgeEstado(r)}</td>
         <td class="td-muted">${esc(r.patrimonio || '—')}</td>
+        <td class="td-muted td-center">${r.unidades != null ? esc(String(r.unidades)) + 'U' : '—'}</td>
         <td>${esc(r.marca || '—')}</td>
         <td class="td-muted">${esc(r.modelo || '—')}</td>
         <td class="td-muted">${esc(r.identificador || '—')}</td>
-        <td class="td-muted td-center">${r.unidades != null ? esc(String(r.unidades)) + 'U' : '—'}</td>
-        <td>${_badgeEstado(r)}</td>
     </tr>`;
 }
 
@@ -721,14 +757,15 @@ function _filaRackServicio(r) {
         <td>${esc(r.edificio || '—')}</td>
         <td class="td-muted">${esc(r.piso || '—')}</td>
         <td class="td-muted">${esc(r.dependencia || '—')}</td>
+        <td class="td-muted">—</td>
     </tr>`;
 }
 
 // ═══════════════════════════════════════════════════════
 //  ORDENAMIENTO (SORTING)
 // ═══════════════════════════════════════════════════════
-let _sortInv = { col: 'patrimonio', dir: 1 }; // 1: asc, -1: desc
-let _sortServ = { col: 'numero', dir: 1 };
+let _sortInv = (() => { try { const s = JSON.parse(localStorage.getItem(APP_KEY + 'sort_inv')); if (s?.col) return s; } catch(_){} return { col: 'patrimonio', dir: 1 }; })();
+let _sortServ = (() => { try { const s = JSON.parse(localStorage.getItem(APP_KEY + 'sort_serv')); if (s?.col) return s; } catch(_){} return { col: 'numero', dir: 1 }; })();
 
 function _ordenarArray(arr, col, dir) {
     return arr.sort((a, b) => {
@@ -803,8 +840,8 @@ function renderServicio() {
     const busq = normalizarTexto(document.getElementById('busq-global')?.value || '');
     let racks = state.racks.filter(r => r.estado === 'servicio');
     if (busq) {
-        const campo = document.getElementById('busq-filtro')?.value || 'todo';
-        racks = racks.filter(r => _coincideBusqueda(r, busq, campo));
+        const campos = _getCamposBusq();
+        racks = racks.filter(r => _coincideBusqueda(r, busq, campos));
     }
     racks = _ordenarArray(racks, _sortServ.col, _sortServ.dir);
     _actualizarIndicadoresSort('panel-servicio', _sortServ);
@@ -1176,6 +1213,7 @@ try {
 } catch (_) { }
 
 renderTodo();
+_restaurarCamposBusq();
 GistSync.init();
 
 // ═══════════════════════════════════════════════════════
@@ -1290,8 +1328,9 @@ function _initBindings() {
     document.querySelectorAll('#panel-inventario th.th-sortable').forEach(th => {
         th.addEventListener('click', () => {
             const col = th.dataset.sort;
-            if (_sortInv.col === col) _sortInv.dir *= -1; // Invierte dirección
-            else { _sortInv.col = col; _sortInv.dir = 1; } // Nueva columna
+            if (_sortInv.col === col) _sortInv.dir *= -1;
+            else { _sortInv.col = col; _sortInv.dir = 1; }
+            try { localStorage.setItem(APP_KEY + 'sort_inv', JSON.stringify(_sortInv)); } catch(_) {}
             renderInventario();
         });
     });
@@ -1301,26 +1340,73 @@ function _initBindings() {
             const col = th.dataset.sort;
             if (_sortServ.col === col) _sortServ.dir *= -1;
             else { _sortServ.col = col; _sortServ.dir = 1; }
+            try { localStorage.setItem(APP_KEY + 'sort_serv', JSON.stringify(_sortServ)); } catch(_) {}
             renderServicio();
         });
     });
 
-    // Filtro de Búsqueda
-    document.getElementById('busq-filtro')?.addEventListener('change', e => {
-        const p = document.getElementById('busq-global');
-        if (!p) return;
-        const v = e.target.value;
-        if (v === 'todo') p.placeholder = 'Buscar por número, marca, patrimonio…';
-        else if (v === 'numero') p.placeholder = 'Buscar número exacto…';
-        else if (v === 'patrimonio') p.placeholder = 'Buscar patrimonio…';
-        else if (v === 'marca') p.placeholder = 'Buscar marca o modelo…';
-        else if (v === 'identificador') p.placeholder = 'Buscar identificador…';
-        else if (v === 'unidades') p.placeholder = 'Buscar unidades (ej: 40u)…';
-        else if (v === 'estado') p.placeholder = 'Buscar estado (disponible, baja)…';
+    // Filtro de Búsqueda — botón icono con dropdown multi-select
+    const filtroBtn = document.getElementById('busq-filtro-btn');
+    const filtroMenu = document.getElementById('busq-filtro-menu');
+    const filtroToggleAll = document.getElementById('busq-filtro-toggle-all');
 
-        onBusqGlobal();
-        p.focus();
-    });
+    if (filtroBtn && filtroMenu) {
+        filtroBtn.addEventListener('click', e => {
+            e.stopPropagation();
+            const abierto = !filtroMenu.hidden;
+            filtroMenu.hidden = abierto;
+            filtroBtn.classList.toggle('activo', !abierto);
+            if (!abierto) {
+                const rect = filtroBtn.getBoundingClientRect();
+                const menuW = 270;
+                const menuH = filtroMenu.offsetHeight || 280;
+                const spaceBelow = window.innerHeight - rect.bottom;
+                const left = Math.max(8, Math.min(rect.right - menuW, window.innerWidth - menuW - 8));
+                filtroMenu.style.left = left + 'px';
+                filtroMenu.style.right = 'auto';
+                if (spaceBelow < menuH + 12 && rect.top > menuH + 12) {
+                    filtroMenu.style.top = 'auto';
+                    filtroMenu.style.bottom = (window.innerHeight - rect.top + 6) + 'px';
+                } else {
+                    filtroMenu.style.top = (rect.bottom + 6) + 'px';
+                    filtroMenu.style.bottom = 'auto';
+                }
+            }
+        });
+
+        filtroMenu.addEventListener('click', e => e.stopPropagation());
+
+        document.addEventListener('click', () => {
+            if (!filtroMenu.hidden) {
+                filtroMenu.hidden = true;
+                filtroBtn.classList.remove('activo');
+            }
+        });
+
+        filtroMenu.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+            cb.addEventListener('change', () => {
+                const total = filtroMenu.querySelectorAll('input[type="checkbox"]').length;
+                const checked = filtroMenu.querySelectorAll('input[type="checkbox"]:checked').length;
+                if (filtroToggleAll) filtroToggleAll.textContent = checked === total ? 'Desactivar todo' : 'Activar todo';
+                filtroBtn.classList.toggle('con-filtro', checked < total);
+                _guardarCamposBusq();
+                onBusqGlobal();
+            });
+        });
+
+        if (filtroToggleAll) {
+            filtroToggleAll.addEventListener('click', e => {
+                e.stopPropagation();
+                const checks = filtroMenu.querySelectorAll('input[type="checkbox"]');
+                const allChecked = Array.from(checks).every(c => c.checked);
+                checks.forEach(c => { c.checked = !allChecked; });
+                filtroToggleAll.textContent = allChecked ? 'Activar todo' : 'Desactivar todo';
+                filtroBtn.classList.toggle('con-filtro', allChecked);
+                _guardarCamposBusq();
+                onBusqGlobal();
+            });
+        }
+    }
 }
 
 if (document.readyState === 'loading') {
