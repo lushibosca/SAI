@@ -476,15 +476,9 @@ body.modal-open {
 }
 
 .th-sortable::after {
-    content: '▲▼';
+    content: '';
     position: absolute;
-    right: 0.4rem;
-    top: 50%;
-    transform: translateY(-50%);
-    opacity: 0.2;
-    font-size: 0.75em;
-    letter-spacing: -2px;
-    /* Los junta un poquito para que se vean como un solo bloque */
+    right: 0.5rem;
 }
 
 /* Triángulo activo (Ascendente) */
