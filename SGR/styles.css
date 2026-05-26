@@ -454,9 +454,22 @@ body.modal-open {
     width: 280px;
     background: var(--bg-card);
     border: 1.5px solid var(--border);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
     overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px) scale(0.95);
+    transform-origin: top right;
+    transition: opacity 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+                visibility 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+                transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.busq-filtro-menu.open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
 }
 
 .busq-filtro-header {
@@ -1001,14 +1014,6 @@ input[type="file"].hidden {
     padding: 0.6rem 0.75rem;
     margin-top: 0.75rem;
     line-height: 1.55;
-}
-
-.gist-sync-status {
-    font-size: 0.78rem;
-    color: var(--text-muted);
-    text-align: right;
-    min-height: 1.2em;
-    margin-top: 0.5rem;
 }
 
 /* Label de distribución coloreado */
