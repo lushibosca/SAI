@@ -113,21 +113,21 @@ function actualizarRack(id, cambios) {
 // Se popula en _initDOMRefs() una vez que el DOM está listo.
 const DOM = {};
 function _initDOMRefs() {
-    DOM.busqGlobal        = document.getElementById('busq-global');
-    DOM.tablaServicio     = document.getElementById('tabla-servicio');
-    DOM.tablaInventario   = document.getElementById('tabla-inventario');
-    DOM.servicioEmpty     = document.getElementById('servicio-empty');
-    DOM.inventarioEmpty   = document.getElementById('inventario-empty');
-    DOM.servicioCount     = document.getElementById('servicio-count');
-    DOM.inventarioCount   = document.getElementById('inventario-count');
-    DOM.statsGrid         = document.getElementById('stats-grid');
-    DOM.toast             = document.getElementById('toast');
-    DOM.btnUndo           = document.getElementById('btn-undo');
-    DOM.btnRedo           = document.getElementById('btn-redo');
-    DOM.fabRackServicio   = document.getElementById('fab-rack-servicio');
-    DOM.busqClearBtn      = document.getElementById('busq-clear-btn');
-    DOM.filtroMenu        = document.getElementById('busq-filtro-menu');
-    DOM.filtroBtn         = document.getElementById('busq-filtro-btn');
+    DOM.busqGlobal = document.getElementById('busq-global');
+    DOM.tablaServicio = document.getElementById('tabla-servicio');
+    DOM.tablaInventario = document.getElementById('tabla-inventario');
+    DOM.servicioEmpty = document.getElementById('servicio-empty');
+    DOM.inventarioEmpty = document.getElementById('inventario-empty');
+    DOM.servicioCount = document.getElementById('servicio-count');
+    DOM.inventarioCount = document.getElementById('inventario-count');
+    DOM.statsGrid = document.getElementById('stats-grid');
+    DOM.toast = document.getElementById('toast');
+    DOM.btnUndo = document.getElementById('btn-undo');
+    DOM.btnRedo = document.getElementById('btn-redo');
+    DOM.fabRackServicio = document.getElementById('fab-rack-servicio');
+    DOM.busqClearBtn = document.getElementById('busq-clear-btn');
+    DOM.filtroMenu = document.getElementById('busq-filtro-menu');
+    DOM.filtroBtn = document.getElementById('busq-filtro-btn');
 }
 
 // ═══════════════════════════════════════════════════════
@@ -221,7 +221,7 @@ const MM = (() => {
         if (handler) { m.removeEventListener('keydown', handler); _trapHandlers.delete(m.id); }
         // Restaurar foco al elemento que lo tenía antes de abrir
         const prev = _prevFocus.get(m.id);
-        if (prev && typeof prev.focus === 'function') { try { prev.focus(); } catch (_) {} }
+        if (prev && typeof prev.focus === 'function') { try { prev.focus(); } catch (_) { } }
         _prevFocus.delete(m.id);
     }
     // ────────────────────────────────────────────────────────
@@ -606,7 +606,7 @@ function abrirModalEditarServicio(id) {
 function _hayCambios(rack, nuevos) {
     return Object.keys(nuevos).some(k => {
         const actual = rack[k] ?? '';
-        const nuevo  = nuevos[k] ?? '';
+        const nuevo = nuevos[k] ?? '';
         // Comparar como string para cubrir números (unidades) y strings vacíos
         return String(actual).trim() !== String(nuevo).trim();
     });
@@ -625,8 +625,8 @@ function guardarEditarServicio() {
     const rack = state.racks.find(r => r.id === _editandoServicioId); if (!rack) return;
     const cambios = {
         numero,
-        edificio:    document.getElementById('editar-servicio-edificio')?.value.trim() || '',
-        piso:        document.getElementById('editar-servicio-piso')?.value.trim() || '',
+        edificio: document.getElementById('editar-servicio-edificio')?.value.trim() || '',
+        piso: document.getElementById('editar-servicio-piso')?.value.trim() || '',
         dependencia: document.getElementById('editar-servicio-dependencia')?.value.trim() || '',
     };
     if (!_hayCambios(rack, cambios)) { MM.cerrar('modal-rack-editar-servicio'); toast('Sin cambios', 'info'); return; }
@@ -767,7 +767,7 @@ function _guardarCamposBusq() {
     try {
         const vals = _getCamposBusq();
         localStorage.setItem(APP_KEY + 'busq_campos', JSON.stringify(vals));
-    } catch(_) {}
+    } catch (_) { }
 }
 function _restaurarCamposBusq() {
     try {
@@ -781,14 +781,14 @@ function _restaurarCamposBusq() {
         if (filtroToggleAll) filtroToggleAll.textContent = checked === total ? 'Desactivar todo' : 'Activar todo';
         const filtroBtn = document.getElementById('busq-filtro-btn');
         if (filtroBtn) filtroBtn.classList.toggle('con-filtro', checked < total);
-    } catch(_) {}
+    } catch (_) { }
 }
 
 function _coincideBusqueda(r, busq, campos) {
     const estadoVis = r.estado === 'inventario' ? 'disponible' : r.estado;
     const uniVis = r.unidades ? r.unidades + 'u' : '';
 
-    const todosLosCampos = ['patrimonio','numero','marca','identificador','unidades','edificio','dependencia','estado','notas'];
+    const todosLosCampos = ['patrimonio', 'numero', 'marca', 'identificador', 'unidades', 'edificio', 'dependencia', 'estado', 'notas'];
     const camposArr = Array.isArray(campos) ? campos : [campos];
     if (!camposArr.length) return false;
     const esTodo = camposArr.includes('todo') || todosLosCampos.every(c => camposArr.includes(c));
@@ -854,8 +854,8 @@ function _filaRackServicio(r) {
 // ═══════════════════════════════════════════════════════
 //  ORDENAMIENTO (SORTING)
 // ═══════════════════════════════════════════════════════
-let _sortInv = (() => { try { const s = JSON.parse(localStorage.getItem(APP_KEY + 'sort_inv')); if (s?.col) return s; } catch(_){} return { col: 'patrimonio', dir: 1 }; })();
-let _sortServ = (() => { try { const s = JSON.parse(localStorage.getItem(APP_KEY + 'sort_serv')); if (s?.col) return s; } catch(_){} return { col: 'numero', dir: 1 }; })();
+let _sortInv = (() => { try { const s = JSON.parse(localStorage.getItem(APP_KEY + 'sort_inv')); if (s?.col) return s; } catch (_) { } return { col: 'patrimonio', dir: 1 }; })();
+let _sortServ = (() => { try { const s = JSON.parse(localStorage.getItem(APP_KEY + 'sort_serv')); if (s?.col) return s; } catch (_) { } return { col: 'numero', dir: 1 }; })();
 
 function _ordenarArray(arr, col, dir) {
     return arr.sort((a, b) => {
@@ -1093,6 +1093,8 @@ const GistSync = (() => {
     const RE_GIST = /^[a-f0-9]{20,40}$/i;
     let _cfg = { token: '', gistId: '', lastSync: null, auto: false };
     let _debounceTimer = null, _subiendo = false;
+    let _maxRacksVistos = 0;
+    let _alertaBorradoMostrada = false;
 
     function _cargarCfg() { try { const c = parseSeguro(localStorage.getItem(CFG_KEY) || 'null'); if (c) _cfg = { ..._cfg, ...c }; } catch (_) { } _actualizarBotonesAjustes(); }
     function _guardarCfg() { try { localStorage.setItem(CFG_KEY, JSON.stringify(_cfg)); } catch (_) { } }
@@ -1153,12 +1155,37 @@ const GistSync = (() => {
             const data = await res.json();
             if (!gistId && data.id) { _cfg.gistId = data.id; const el = document.getElementById('gist-id'); if (el) el.value = data.id; _linkBtn(); }
             _cfg.lastSync = new Date().toISOString(); _guardarCfg(); _setStatusSync();
+            _maxRacksVistos = state.racks.length; 
+            _alertaBorradoMostrada = false;
             if (!silent) toast('Datos subidos a Gist');
         } catch (err) { _setStatus(`Error: ${err.message}`); if (!silent) toast(`Error al subir: ${err.message}`, 'error'); }
         finally { _setBusy(false); }
     }
     function subir() { _ejecutarSubida(false); }
-    function subirAuto() { if (!_cfg.auto || !_cfg.token) return; clearTimeout(_debounceTimer); _debounceTimer = setTimeout(() => { if (!_subiendo) _ejecutarSubida(true); }, DEBOUNCE_MS); }
+    function subirAuto() {
+        if (!_cfg.auto || !_cfg.token) return;
+
+        // Actualiza el récord histórico si la base de datos creció
+        if (state.racks.length > _maxRacksVistos) {
+            _maxRacksVistos = state.racks.length;
+        }
+
+        // 🛡️ PROTECCIÓN CONTRA BORRADO MASIVO:
+        const umbralSeguro = Math.floor(_maxRacksVistos * 0.5);
+        if (state.racks.length === 0 || (state.racks.length < umbralSeguro && _maxRacksVistos > 5)) {
+            if (!_alertaBorradoMostrada) {
+                toast('Sync auto pausada: Se detectó un borrado masivo', 'error');
+                _alertaBorradoMostrada = true;
+            }
+            _setStatus('Pausada por seguridad (borrado masivo)');
+            return; // Aborta
+        } else {
+            _alertaBorradoMostrada = false; // Se recuperó el nivel seguro
+        }
+
+        clearTimeout(_debounceTimer);
+        _debounceTimer = setTimeout(() => { if (!_subiendo) _ejecutarSubida(true); }, DEBOUNCE_MS);
+    }
     async function bajar() {
         const token = document.getElementById('gist-token')?.value.trim() || _cfg.token;
         const gistId = document.getElementById('gist-id')?.value.trim() || _cfg.gistId;
@@ -1207,7 +1234,7 @@ const GistSync = (() => {
         if (_cfg.lastSync) _setStatusSync(); else _setStatus('Sin sincronizar');
         _linkBtn();
     }
-    function init() { _cargarCfg(); }
+    function init() { _cargarCfg(); _maxRacksVistos = state.racks.length; }
     return { init, subir, subirAuto, bajar, poblarModal, guardarConfig, toggleToken, toggleAuto, _linkBtn };
 })();
 
@@ -1447,7 +1474,7 @@ function _initBindings() {
             const col = th.dataset.sort;
             if (_sortInv.col === col) _sortInv.dir *= -1;
             else { _sortInv.col = col; _sortInv.dir = 1; }
-            try { localStorage.setItem(APP_KEY + 'sort_inv', JSON.stringify(_sortInv)); } catch(_) {}
+            try { localStorage.setItem(APP_KEY + 'sort_inv', JSON.stringify(_sortInv)); } catch (_) { }
             renderInventario();
         });
     });
@@ -1457,7 +1484,7 @@ function _initBindings() {
             const col = th.dataset.sort;
             if (_sortServ.col === col) _sortServ.dir *= -1;
             else { _sortServ.col = col; _sortServ.dir = 1; }
-            try { localStorage.setItem(APP_KEY + 'sort_serv', JSON.stringify(_sortServ)); } catch(_) {}
+            try { localStorage.setItem(APP_KEY + 'sort_serv', JSON.stringify(_sortServ)); } catch (_) { }
             renderServicio();
         });
     });
