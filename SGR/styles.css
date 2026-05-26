@@ -1016,6 +1016,14 @@ input[type="file"].hidden {
     line-height: 1.55;
 }
 
+.gist-sync-status {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    text-align: right;
+    min-height: 1.2em;
+    margin-top: 0.5rem;
+}
+
 /* Label de distribución coloreado */
 .rack-dist-label {
     font-size: 0.78rem;
@@ -1951,4 +1959,165 @@ kbd {
 
 .edificios-item-eliminar:hover {
     opacity: 1;
+}
+
+/* ════════════════════════════════════════════════════════
+   CARD HEADER ACTIONS
+   ════════════════════════════════════════════════════════ */
+
+.card-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.15rem;
+    margin-left: auto;
+}
+
+.card-action-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+    transition: color var(--t-fast), background var(--t-fast);
+}
+
+.card-action-btn:hover,
+.card-action-btn.activo {
+    color: var(--text-main);
+    background: var(--input-bg);
+}
+
+/* ════════════════════════════════════════════════════════
+   MENÚ OPCIONES DE VISTA
+   ════════════════════════════════════════════════════════ */
+
+.inv-vista-menu {
+    position: fixed;
+    z-index: 9999;
+    min-width: 180px;
+    background: var(--bg-card);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+    padding: 0.4rem;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px) scale(0.96);
+    transform-origin: top right;
+    transition: opacity 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+                visibility 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+                transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.inv-vista-menu.open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+}
+
+.inv-vista-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    padding: 0.3rem 0.6rem 0.2rem;
+}
+
+.inv-vista-opt {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 0.45rem 0.75rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-align: left;
+    background: none;
+    border: none;
+    color: var(--text-main);
+    cursor: pointer;
+    transition: background var(--t-fast);
+}
+
+.inv-vista-opt:hover {
+    background: var(--input-bg);
+}
+
+.inv-vista-opt.activo {
+    color: var(--accent);
+    font-weight: 700;
+}
+
+/* ════════════════════════════════════════════════════════
+   GRUPOS COLAPSABLES
+   ════════════════════════════════════════════════════════ */
+
+.inv-grupos-wrap {
+    padding: 0;
+}
+
+.inv-grupo {
+    border-bottom: 1px solid var(--border);
+}
+
+.inv-grupo:last-child {
+    border-bottom: none;
+}
+
+.inv-grupo-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 0.75rem;
+    cursor: pointer;
+    user-select: none;
+    transition: background var(--t-fast);
+}
+
+.inv-grupo-header:hover {
+    background: var(--input-bg);
+}
+
+.inv-grupo-chevron {
+    width: 14px;
+    height: 14px;
+    color: var(--text-muted);
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+}
+
+.inv-grupo.open .inv-grupo-chevron {
+    transform: rotate(90deg);
+}
+
+.inv-grupo-titulo {
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--accent);
+    flex: 1;
+}
+
+.inv-grupo-badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 0.1rem 0.55rem;
+    color: var(--text-muted);
+}
+
+.inv-grupo-body {
+    display: none;
+}
+
+.inv-grupo.open .inv-grupo-body {
+    display: block;
+}
+
+.inv-grupo-body .table-wrap {
+    margin: 0;
+    padding: 0;
 }

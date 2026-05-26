@@ -951,21 +951,125 @@ function renderServicio() {
 }
 
 // ═══════════════════════════════════════════════════════
+//  AGRUPAMIENTO INVENTARIO
+// ═══════════════════════════════════════════════════════
+let _agrupInv = (() => { try { return localStorage.getItem(APP_KEY + 'agrup_inv') || 'ninguno'; } catch (_) { return 'ninguno'; } })();
+
+function _setAgrupInv(val) {
+    _agrupInv = val;
+    try { localStorage.setItem(APP_KEY + 'agrup_inv', val); } catch (_) { }
+}
+
+function _getGrupos(racks) {
+    if (_agrupInv === 'ninguno') return null;
+
+    if (_agrupInv === 'patrimonio') {
+        const conPatr = racks.filter(r => r.patrimonio && r.patrimonio.trim());
+        const sinPatr = racks.filter(r => !r.patrimonio || !r.patrimonio.trim());
+        // "Sin relevar" = sin patrimonio y sin identificador propio (solo el autogenerado = igual al id en mayúsculas)
+        const sinRelevar = sinPatr.filter(r => !r.identificador || r.identificador === r.id?.toUpperCase());
+        const sinPatrConId = sinPatr.filter(r => r.identificador && r.identificador !== r.id?.toUpperCase());
+        return [
+            { titulo: 'Con patrimonio', racks: conPatr },
+            { titulo: 'Sin patrimonio', racks: sinPatrConId },
+            { titulo: 'Falta relevar', racks: sinRelevar },
+        ].filter(g => g.racks.length > 0);
+    }
+
+    if (_agrupInv === 'estado') {
+        const map = { servicio: 'En servicio', inventario: 'Disponible', baja: 'Baja' };
+        return ['servicio', 'inventario', 'baja'].map(e => ({
+            titulo: map[e],
+            racks: racks.filter(r => r.estado === e),
+        })).filter(g => g.racks.length > 0);
+    }
+
+    if (_agrupInv === 'edificio') {
+        const porEdificio = {};
+        racks.forEach(r => {
+            const ed = r.edificio?.trim() || '(Sin edificio)';
+            if (!porEdificio[ed]) porEdificio[ed] = {};
+            const piso = r.piso?.trim() || '(Sin piso)';
+            if (!porEdificio[ed][piso]) porEdificio[ed][piso] = [];
+            porEdificio[ed][piso].push(r);
+        });
+        const grupos = [];
+        Object.keys(porEdificio).sort((a, b) => a.localeCompare(b, 'es')).forEach(ed => {
+            const pisos = porEdificio[ed];
+            const keys = Object.keys(pisos).sort((a, b) => a.localeCompare(b, 'es', { numeric: true }));
+            if (keys.length === 1 && keys[0] === '(Sin piso)') {
+                grupos.push({ titulo: ed, racks: pisos['(Sin piso)'] });
+            } else {
+                keys.forEach(piso => {
+                    grupos.push({ titulo: `${ed} — Piso: ${piso}`, racks: pisos[piso] });
+                });
+            }
+        });
+        return grupos;
+    }
+
+    return null;
+}
+
+function _htmlTablaGrupo(racks) {
+    return `<div class="table-wrap">
+        <table class="table-equal-cols">
+            <tbody>${racks.map(_filaRackInv).join('')}</tbody>
+        </table>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
 //  RENDER INVENTARIO
 // ═══════════════════════════════════════════════════════
 function renderInventario() {
     _actualizarIndicadoresSort('panel-inventario', _sortInv);
     const racks = _getRacksFiltrados();
-    const tbody = DOM.tablaInventario || document.getElementById('tabla-inventario');
     const empty = DOM.inventarioEmpty || document.getElementById('inventario-empty');
     const count = DOM.inventarioCount || document.getElementById('inventario-count');
+    const tablaWrap = document.getElementById('inv-tabla-wrap');
+    const gruposWrap = document.getElementById('inv-grupos-wrap');
+    const tbody = DOM.tablaInventario || document.getElementById('tabla-inventario');
+
     if (count) count.textContent = racks.length;
 
     if (!racks.length) {
-        tbody.innerHTML = ''; empty.classList.remove('empty-state-hidden');
+        tablaWrap?.removeAttribute('hidden');
+        gruposWrap?.setAttribute('hidden', '');
+        if (tbody) tbody.innerHTML = '';
+        empty?.classList.remove('empty-state-hidden');
+        return;
+    }
+    empty?.classList.add('empty-state-hidden');
+
+    const grupos = _getGrupos(racks);
+
+    if (!grupos) {
+        // Vista plana
+        gruposWrap?.setAttribute('hidden', '');
+        tablaWrap?.removeAttribute('hidden');
+        if (tbody) tbody.innerHTML = racks.map(_filaRackInv).join('');
     } else {
-        empty.classList.add('empty-state-hidden');
-        tbody.innerHTML = racks.map(_filaRackInv).join('');
+        // Vista agrupada
+        tablaWrap?.setAttribute('hidden', '');
+        gruposWrap?.removeAttribute('hidden');
+        // Mantener estado open de grupos entre renders
+        const abiertos = new Set();
+        gruposWrap?.querySelectorAll('.inv-grupo.open').forEach(el => abiertos.add(el.dataset.grupoKey));
+        if (gruposWrap) {
+            gruposWrap.innerHTML = grupos.map((g, i) => {
+                const key = g.titulo;
+                const isOpen = abiertos.size ? abiertos.has(key) : i === 0; // primer grupo abierto por defecto
+                return `<div class="inv-grupo${isOpen ? ' open' : ''}" data-grupo-key="${esc(key)}">
+                    <div class="inv-grupo-header">
+                        <svg class="svg-icon inv-grupo-chevron"><use href="#icon-chevron-right"/></svg>
+                        <span class="inv-grupo-titulo">${esc(g.titulo)}</span>
+                        <span class="inv-grupo-badge">${g.racks.length}</span>
+                    </div>
+                    <div class="inv-grupo-body">${_htmlTablaGrupo(g.racks)}</div>
+                </div>`;
+            }).join('');
+        }
     }
 }
 
@@ -1418,6 +1522,12 @@ window.addEventListener('scroll', () => {
         filtroMenu.classList.remove('open');
         filtroBtn?.classList.remove('activo');
     }
+    const vistaMenu = document.getElementById('inv-vista-menu');
+    const btnVista = document.getElementById('btn-vista-inv');
+    if (vistaMenu?.classList.contains('open')) {
+        vistaMenu.classList.remove('open');
+        btnVista?.classList.remove('activo');
+    }
 }, { passive: true });
 
 document.addEventListener('input', e => {
@@ -1649,6 +1759,73 @@ function _initBindings() {
             });
         }
     }
+    // ── Botón vista inventario ──
+    const btnVista = document.getElementById('btn-vista-inv');
+    const vistaMenu = document.getElementById('inv-vista-menu');
+    if (btnVista && vistaMenu) {
+        // Poblar opciones
+        vistaMenu.innerHTML = `
+            <p class="inv-vista-label">Agrupar por</p>
+            <button class="inv-vista-opt" data-agrup="ninguno">Sin agrupar</button>
+            <button class="inv-vista-opt" data-agrup="patrimonio">Patrimonio</button>
+            <button class="inv-vista-opt" data-agrup="estado">Estado</button>
+            <button class="inv-vista-opt" data-agrup="edificio">Edificio</button>
+        `;
+        // Mover al body para evitar clipping del card
+        document.body.appendChild(vistaMenu);
+
+        const _syncVistaOpts = () => {
+            vistaMenu.querySelectorAll('.inv-vista-opt').forEach(b => {
+                b.classList.toggle('activo', b.dataset.agrup === _agrupInv);
+            });
+        };
+        _syncVistaOpts();
+
+        const _cerrarVista = () => {
+            vistaMenu.classList.remove('open');
+            btnVista.classList.remove('activo');
+        };
+
+        btnVista.addEventListener('click', e => {
+            e.stopPropagation();
+            const abierto = vistaMenu.classList.contains('open');
+            if (abierto) { _cerrarVista(); return; }
+            const rect = btnVista.getBoundingClientRect();
+            vistaMenu.style.top = (rect.bottom + 6) + 'px';
+            vistaMenu.style.left = 'auto';
+            vistaMenu.style.right = (window.innerWidth - rect.right) + 'px';
+            vistaMenu.classList.add('open');
+            btnVista.classList.add('activo');
+            _syncVistaOpts();
+        });
+
+        vistaMenu.addEventListener('click', e => {
+            e.stopPropagation();
+            const opt = e.target.closest('.inv-vista-opt');
+            if (!opt) return;
+            _setAgrupInv(opt.dataset.agrup);
+            _syncVistaOpts();
+            renderInventario();
+            _cerrarVista();
+        });
+
+        document.addEventListener('click', () => {
+            if (vistaMenu.classList.contains('open')) _cerrarVista();
+        });
+    }
+
+    // ── Botón reporte inventario (sin lógica por ahora) ──
+    document.getElementById('btn-reporte-inv')?.addEventListener('click', () => {
+        toast('Próximamente: generación de reportes', 'info');
+    });
+
+    // ── Colapso de grupos (delegado en el wrapper) ──
+    document.getElementById('inv-grupos-wrap')?.addEventListener('click', e => {
+        const tr = e.target.closest('tr[data-rack-id]');
+        if (tr) { abrirModalEditarRack(tr.dataset.rackId); return; }
+        const header = e.target.closest('.inv-grupo-header');
+        if (header) header.closest('.inv-grupo')?.classList.toggle('open');
+    });
 }
 
 if (document.readyState === 'loading') {
