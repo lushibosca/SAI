@@ -960,6 +960,57 @@ function _setAgrupInv(val) {
     try { localStorage.setItem(APP_KEY + 'agrup_inv', val); } catch (_) { }
 }
 
+// Convierte un string de piso a un número de orden para ordenamiento jerárquico:
+// Subsuelos → Planta Baja → Entre pisos → Pisos → Terraza/Azotea → Desconocido
+function _rankPiso(piso) {
+    const s = piso.trim().toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, ''); // quitar tildes
+
+    // Sin piso / vacío → al final
+    if (!s || s === '(sin piso)') return [9000, 0];
+
+    // Terraza / azotea / techo
+    if (/^(terraza|azotea|techo|roof)/.test(s)) return [8000, 0];
+
+    // Subsuelo: ss, sub, s/s, subsuelo — puede tener número: ss1, ss-1, subsuelo 2, 1ss, 2ss
+    const mSS = s.match(/^(ss|sub|s\/s|subsuelo)\s*[-.]?\s*(\d+)?/) || s.match(/^(\d+)\s*(ss|sub|s\/s|subsuelo)/);
+    if (mSS) {
+        // formato "ss2" → mSS[2]="2" | formato "2ss" → mSS[1]="2"
+        const n = parseInt(mSS[2]) || parseInt(mSS[1]) || 1;
+        return [-n, 0];
+    }
+    // Número negativo literal: -1, -2
+    const mNeg = s.match(/^-(\d+)/);
+    if (mNeg) return [-parseInt(mNeg[1]), 0];
+
+    // Planta baja: pb, planta baja, g, ground, ez (entrepiso bajo)
+    if (/^(pb|planta\s*baja|ground|piso\s*0|p\.?b\.?)$/.test(s)) return [0, 0];
+
+    // Entre piso / mezzanine: ep, e/p, entrepiso, mezzanine, mz
+    const mEP = s.match(/^(ep|e\/p|entre\s*piso|mezzanine|mz|piso\s*e)\s*(\d+)?/);
+    if (mEP) {
+        const n = mEP[2] ? parseInt(mEP[2]) : 1;
+        return [n - 0.5, 0]; // entre piso 1 = 0.5, entre piso 2 = 1.5
+    }
+
+    // Piso numérico: 1, 2, piso 3, p3, p. 4
+    const mP = s.match(/^(?:piso\s*|p\.?\s*)?(\d+)/);
+    if (mP) return [parseInt(mP[1]), 0];
+
+    // Letra sola o combinación alfanumérica: A, B, 1A
+    const mAlfa = s.match(/^([a-z])(\d+)?/);
+    if (mAlfa) return [5000 + mAlfa[1].charCodeAt(0), mAlfa[2] ? parseInt(mAlfa[2]) : 0];
+
+    // Fallback: orden alfabético al final
+    return [7000, s.charCodeAt(0)];
+}
+
+function _ordenarPisos(a, b) {
+    const [ra1, ra2] = _rankPiso(a);
+    const [rb1, rb2] = _rankPiso(b);
+    return ra1 !== rb1 ? ra1 - rb1 : ra2 - rb2;
+}
+
 function _getGrupos(racks) {
     if (_agrupInv === 'ninguno') return null;
 
@@ -996,7 +1047,7 @@ function _getGrupos(racks) {
         const grupos = [];
         Object.keys(porEdificio).sort((a, b) => a.localeCompare(b, 'es')).forEach(ed => {
             const pisos = porEdificio[ed];
-            const keys = Object.keys(pisos).sort((a, b) => a.localeCompare(b, 'es', { numeric: true }));
+        const keys = Object.keys(pisos).sort(_ordenarPisos);
             if (keys.length === 1 && keys[0] === '(Sin piso)') {
                 grupos.push({ titulo: ed, racks: pisos['(Sin piso)'] });
             } else {
@@ -1012,11 +1063,7 @@ function _getGrupos(racks) {
 }
 
 function _htmlTablaGrupo(racks) {
-    return `<div class="table-wrap">
-        <table class="table-equal-cols">
-            <tbody>${racks.map(_filaRackInv).join('')}</tbody>
-        </table>
-    </div>`;
+    return racks.map(_filaRackInv).join('');
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1050,25 +1097,56 @@ function renderInventario() {
         tablaWrap?.removeAttribute('hidden');
         if (tbody) tbody.innerHTML = racks.map(_filaRackInv).join('');
     } else {
-        // Vista agrupada
+        // Vista agrupada: una sola tabla con thead sticky, grupos como filas separadoras
         tablaWrap?.setAttribute('hidden', '');
         gruposWrap?.removeAttribute('hidden');
+
         // Mantener estado open de grupos entre renders
         const abiertos = new Set();
-        gruposWrap?.querySelectorAll('.inv-grupo.open').forEach(el => abiertos.add(el.dataset.grupoKey));
+        gruposWrap?.querySelectorAll('.inv-grupo-tr-header.open').forEach(el => abiertos.add(el.dataset.grupoKey));
+
         if (gruposWrap) {
-            gruposWrap.innerHTML = grupos.map((g, i) => {
+            const thead = `<thead class="inv-thead-sticky">
+                <tr>
+                    <th data-sort="estado" class="th-sortable">Estado</th>
+                    <th data-sort="patrimonio" class="th-sortable">Patrimonio</th>
+                    <th data-sort="unidades" class="th-sortable">Unidades</th>
+                    <th data-sort="marca" class="th-sortable">Marca</th>
+                    <th data-sort="modelo" class="th-sortable">Modelo</th>
+                    <th data-sort="identificador" class="th-sortable">Identificador</th>
+                </tr>
+            </thead>`;
+
+            const tbodyRows = grupos.map((g, i) => {
                 const key = g.titulo;
-                const isOpen = abiertos.size ? abiertos.has(key) : i === 0; // primer grupo abierto por defecto
-                return `<div class="inv-grupo${isOpen ? ' open' : ''}" data-grupo-key="${esc(key)}">
-                    <div class="inv-grupo-header">
-                        <svg class="svg-icon inv-grupo-chevron"><use href="#icon-chevron-right"/></svg>
-                        <span class="inv-grupo-titulo">${esc(g.titulo)}</span>
-                        <span class="inv-grupo-badge">${g.racks.length}</span>
-                    </div>
-                    <div class="inv-grupo-body">${_htmlTablaGrupo(g.racks)}</div>
-                </div>`;
+                const isOpen = abiertos.size ? abiertos.has(key) : i === 0;
+                const filas = g.racks.map(r =>
+                    `<tr class="tr-clickable rack-estado-${r.estado}" data-rack-id="${esc(r.id)}"${isOpen ? '' : ' hidden'}>
+                        <td>${_badgeEstado(r)}</td>
+                        <td class="td-muted">${esc(r.patrimonio || '—')}</td>
+                        <td class="td-muted td-center">${r.unidades != null ? esc(String(r.unidades)) + 'U' : '—'}</td>
+                        <td>${esc(r.marca || '—')}</td>
+                        <td class="td-muted">${esc(r.modelo || '—')}</td>
+                        <td class="td-muted">${esc(r.identificador || '—')}</td>
+                    </tr>`
+                ).join('');
+                return `<tr class="inv-grupo-tr-header${isOpen ? ' open' : ''}" data-grupo-key="${esc(key)}">
+                    <td colspan="6">
+                        <div class="inv-grupo-header">
+                            <svg class="svg-icon inv-grupo-chevron"><use href="#icon-chevron-right"/></svg>
+                            <span class="inv-grupo-titulo">${esc(g.titulo)}</span>
+                            <span class="inv-grupo-badge">${g.racks.length}</span>
+                        </div>
+                    </td>
+                </tr>${filas}`;
             }).join('');
+
+            gruposWrap.innerHTML = `<div class="table-wrap inv-tabla-agrupada">
+                <table class="table-equal-cols">
+                    ${thead}
+                    <tbody id="tabla-inventario-grupos">${tbodyRows}</tbody>
+                </table>
+            </div>`;
         }
     }
 }
@@ -1823,8 +1901,16 @@ function _initBindings() {
     document.getElementById('inv-grupos-wrap')?.addEventListener('click', e => {
         const tr = e.target.closest('tr[data-rack-id]');
         if (tr) { abrirModalEditarRack(tr.dataset.rackId); return; }
-        const header = e.target.closest('.inv-grupo-header');
-        if (header) header.closest('.inv-grupo')?.classList.toggle('open');
+        const header = e.target.closest('.inv-grupo-tr-header');
+        if (!header) return;
+        const key = header.dataset.grupoKey;
+        const isOpen = header.classList.toggle('open');
+        // Mostrar u ocultar las filas de datos que siguen hasta el próximo header
+        let next = header.nextElementSibling;
+        while (next && !next.classList.contains('inv-grupo-tr-header')) {
+            next.hidden = !isOpen;
+            next = next.nextElementSibling;
+        }
     });
 }
 
