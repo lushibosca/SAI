@@ -2115,6 +2115,17 @@ function _initBindings() {
             _setAgrupInv(opt.dataset.agrup);
             _syncVistaOpts();
             renderInventario();
+            // Animar el contenedor tras el render
+            const tablaWrap = document.getElementById('inv-tabla-wrap');
+            const gruposWrap = document.getElementById('inv-grupos-wrap');
+            [tablaWrap, gruposWrap].forEach(el => {
+                if (el && !el.hasAttribute('hidden')) {
+                    el.classList.remove('inv-agrup-entrando');
+                    void el.offsetWidth; // reflow para reiniciar animación
+                    el.classList.add('inv-agrup-entrando');
+                    el.addEventListener('animationend', () => el.classList.remove('inv-agrup-entrando'), { once: true });
+                }
+            });
             _cerrarVista();
         });
 
@@ -2245,6 +2256,7 @@ function _initBindings() {
                     next = next.nextElementSibling;
                 }
             }
+
             guardarGruposAbiertos(); // Almacenar estado individual
         });
     }

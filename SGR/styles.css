@@ -1889,6 +1889,25 @@ kbd {
     }
 }
 
+@keyframes invFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Animación al cambiar agrupamiento */
+.inv-agrup-entrando {
+    animation: invFadeIn 0.22s ease forwards;
+}
+
+
+
+
 @keyframes spin {
     from {
         transform: rotate(0deg);
@@ -2134,6 +2153,15 @@ kbd {
 .inv-grupo-tr-sub .inv-grupo-chevron {
     width: 12px;
     height: 12px;
+}
+
+.inv-grupo-chevron-right {
+    margin-left: auto;
+    transform: rotate(90deg);
+}
+
+.inv-grupo-tr-header.open .inv-grupo-chevron-right {
+    transform: rotate(270deg);
 }
 
 .inv-grupo-tr-sub .inv-grupo-badge {
