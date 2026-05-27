@@ -1996,12 +1996,12 @@ kbd {
     min-width: 180px;
     background: var(--bg-card);
     border: 1.5px solid var(--border);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
-    padding: 0.4rem;
+    overflow: hidden;
     opacity: 0;
     visibility: hidden;
-    transform: translateY(-8px) scale(0.96);
+    transform: translateY(-10px) scale(0.95);
     transform-origin: top right;
     transition: opacity 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275),
                 visibility 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275),
@@ -2015,24 +2015,29 @@ kbd {
 }
 
 .inv-vista-label {
-    font-size: 0.7rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.6rem 0.85rem;
+    border-bottom: 1.5px solid var(--border);
+    background: var(--bg-header);
+    font-size: 0.72rem;
     font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.08em;
     color: var(--text-muted);
-    padding: 0.3rem 0.6rem 0.2rem;
+    text-transform: uppercase;
+    margin: 0;
 }
 
 .inv-vista-opt {
     display: flex;
     align-items: center;
     width: 100%;
-    padding: 0.45rem 0.75rem;
-    border-radius: var(--radius-sm);
-    font-size: 0.85rem;
+    padding: 0.6rem 0.85rem;
+    font-size: 0.88rem;
     font-weight: 500;
     text-align: left;
-    background: none;
+    background: var(--bg-card);
     border: none;
     color: var(--text-main);
     cursor: pointer;
@@ -2040,7 +2045,7 @@ kbd {
 }
 
 .inv-vista-opt:hover {
-    background: var(--input-bg);
+    filter: var(--hover);
 }
 
 .inv-vista-opt.activo {

@@ -53,7 +53,7 @@ function _sanitizarRack(r) {
     if (!r || typeof r !== 'object') return null;
     const id = _s(r.id, 32);
     const patrimonio = _s(r.patrimonio, 30);
-    if (!id || !RE_ID.test(id) || !patrimonio) return null;
+    if (!id || !RE_ID.test(id)) return null;
     const estado = ESTADOS_VALIDOS.has(r.estado) ? r.estado : 'inventario';
     return {
         id, estado,
@@ -313,15 +313,36 @@ function toggleDarkMode() {
 //  FAB DROPDOWN
 // ═══════════════════════════════════════════════════════
 let _fabOpen = false;
-function toggleFab() {
-    _fabOpen = !_fabOpen;
-    document.getElementById('fab-menu')?.classList.toggle('show', _fabOpen);
-    document.getElementById('btn-fab-main')?.classList.toggle('active', _fabOpen);
-}
 function cerrarFab() {
     _fabOpen = false;
     document.getElementById('fab-menu')?.classList.remove('show');
     document.getElementById('btn-fab-main')?.classList.remove('active');
+}
+function _cerrarFiltro() {
+    const m = document.getElementById('busq-filtro-menu');
+    const b = document.getElementById('busq-filtro-btn');
+    if (m) m.classList.remove('open');
+    if (b) b.classList.remove('activo');
+}
+function _cerrarVistaSafe() {
+    const m = document.getElementById('inv-vista-menu');
+    const b = document.getElementById('btn-vista-inv');
+    if (m) m.classList.remove('open');
+    if (b) b.classList.remove('activo');
+}
+function _cerrarTodosDropdowns() {
+    cerrarFab();
+    _cerrarFiltro();
+    _cerrarVistaSafe();
+}
+function toggleFab() {
+    const abierto = _fabOpen;
+    _cerrarTodosDropdowns();
+    if (!abierto) {
+        _fabOpen = true;
+        document.getElementById('fab-menu')?.classList.add('show');
+        document.getElementById('btn-fab-main')?.classList.add('active');
+    }
 }
 
 // ═══════════════════════════════════════════════════════
@@ -531,14 +552,13 @@ function _leerFormRack(sufijo) {
 
 function guardarNuevoRack() {
     const datos = _leerFormRack('nuevo');
-    const patEl = document.getElementById('rack-patrimonio-nuevo');
     const uEl = document.getElementById('rack-unidades-nuevo');
-    let ok = true;
-    if (!datos.patrimonio) { patEl.classList.add('error'); ok = false; }
-    if (!datos.unidades) { uEl.classList.add('error'); ok = false; }
-    if (!ok) { toast('Patrimonio y Unidades son obligatorios', 'error'); return; }
-    if (datos.patrimonio.toLowerCase() !== 'no' && state.racks.some(r => r.patrimonio.toLowerCase() === datos.patrimonio.toLowerCase())) {
-        patEl.classList.add('error');
+    if (!datos.unidades) { uEl.classList.add('error'); toast('Las Unidades son obligatorias', 'error'); return; }
+    if (!datos.patrimonio) datos.patrimonio = 'relevar';
+    const patNorm = datos.patrimonio.toLowerCase();
+    const esDuplicablePatrimonio = patNorm === 'no' || patNorm === 'relevar';
+    if (!esDuplicablePatrimonio && state.racks.some(r => r.patrimonio.toLowerCase() === patNorm)) {
+        document.getElementById('rack-patrimonio-nuevo')?.classList.add('error');
         toast(`Ya existe un rack con patrimonio "${datos.patrimonio}"`, 'error');
         return;
     }
@@ -656,14 +676,13 @@ function quitarDeServicio() {
 function guardarEditarRack() {
     if (!_editandoRackId) return;
     const datos = _leerFormRack('editar');
-    const patEl = document.getElementById('rack-patrimonio-editar');
     const uEl = document.getElementById('rack-unidades-editar');
-    let ok = true;
-    if (!datos.patrimonio) { patEl.classList.add('error'); ok = false; }
-    if (!datos.unidades) { uEl.classList.add('error'); ok = false; }
-    if (!ok) { toast('Patrimonio y Unidades son obligatorios', 'error'); return; }
-    if (datos.patrimonio.toLowerCase() !== 'no' && state.racks.some(r => r.id !== _editandoRackId && r.patrimonio.toLowerCase() === datos.patrimonio.toLowerCase())) {
-        patEl.classList.add('error');
+    if (!datos.unidades) { uEl.classList.add('error'); toast('Las Unidades son obligatorias', 'error'); return; }
+    if (!datos.patrimonio) datos.patrimonio = 'relevar';
+    const patNorm = datos.patrimonio.toLowerCase();
+    const esDuplicablePatrimonio = patNorm === 'no' || patNorm === 'relevar';
+    if (!esDuplicablePatrimonio && state.racks.some(r => r.id !== _editandoRackId && r.patrimonio.toLowerCase() === patNorm)) {
+        document.getElementById('rack-patrimonio-editar')?.classList.add('error');
         toast(`Ya existe un rack con patrimonio "${datos.patrimonio}"`, 'error');
         return;
     }
@@ -1015,15 +1034,14 @@ function _getGrupos(racks) {
     if (_agrupInv === 'ninguno') return null;
 
     if (_agrupInv === 'patrimonio') {
-        const conPatr = racks.filter(r => r.patrimonio && r.patrimonio.trim());
-        const sinPatr = racks.filter(r => !r.patrimonio || !r.patrimonio.trim());
-        // "Sin relevar" = sin patrimonio y sin identificador propio (solo el autogenerado = igual al id en mayúsculas)
-        const sinRelevar = sinPatr.filter(r => !r.identificador || r.identificador === r.id?.toUpperCase());
-        const sinPatrConId = sinPatr.filter(r => r.identificador && r.identificador !== r.id?.toUpperCase());
+        const _patNorm = r => (r.patrimonio || '').trim().toLowerCase();
+        const aRelevar  = racks.filter(r => { const p = _patNorm(r); return !p || p === 'relevar'; });
+        const sinPatr   = racks.filter(r => _patNorm(r) === 'no');
+        const conPatr   = racks.filter(r => { const p = _patNorm(r); return p && p !== 'relevar' && p !== 'no'; });
         return [
             { titulo: 'Con patrimonio', racks: conPatr },
-            { titulo: 'Sin patrimonio', racks: sinPatrConId },
-            { titulo: 'Falta relevar', racks: sinRelevar },
+            { titulo: 'Sin patrimonio', racks: sinPatr },
+            { titulo: 'A relevar', racks: aRelevar },
         ].filter(g => g.racks.length > 0);
     }
 
@@ -1593,19 +1611,7 @@ window.addEventListener('scroll', () => {
     if (btn) btn.classList.toggle('show', window.scrollY > window.innerHeight);
     const h = document.getElementById('main-header');
     if (h) h.classList.toggle('scrolled', window.scrollY > 50);
-    if (_fabOpen) cerrarFab();
-    const filtroMenu = DOM.filtroMenu || document.getElementById('busq-filtro-menu');
-    const filtroBtn = DOM.filtroBtn || document.getElementById('busq-filtro-btn');
-    if (filtroMenu?.classList.contains('open')) {
-        filtroMenu.classList.remove('open');
-        filtroBtn?.classList.remove('activo');
-    }
-    const vistaMenu = document.getElementById('inv-vista-menu');
-    const btnVista = document.getElementById('btn-vista-inv');
-    if (vistaMenu?.classList.contains('open')) {
-        vistaMenu.classList.remove('open');
-        btnVista?.classList.remove('activo');
-    }
+    _cerrarTodosDropdowns();
 }, { passive: true });
 
 document.addEventListener('input', e => {
@@ -1783,6 +1789,8 @@ function _initBindings() {
         filtroBtn.addEventListener('click', e => {
             e.stopPropagation();
             const abierto = filtroMenu.classList.contains('open');
+            cerrarFab();
+            _cerrarVistaSafe();
             filtroBtn.classList.toggle('activo', !abierto);
             if (!abierto) {
                 const rect = filtroBtn.getBoundingClientRect();
@@ -1868,6 +1876,8 @@ function _initBindings() {
             e.stopPropagation();
             const abierto = vistaMenu.classList.contains('open');
             if (abierto) { _cerrarVista(); return; }
+            cerrarFab();
+            _cerrarFiltro();
             const rect = btnVista.getBoundingClientRect();
             vistaMenu.style.top = (rect.bottom + 6) + 'px';
             vistaMenu.style.left = 'auto';
