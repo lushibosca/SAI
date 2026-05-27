@@ -55,18 +55,22 @@ function _sanitizarRack(r) {
     const patrimonio = _s(r.patrimonio, 30);
     if (!id || !RE_ID.test(id)) return null;
     const estado = ESTADOS_VALIDOS.has(r.estado) ? r.estado : 'inventario';
+    
+    // ── REGLA DE NEGOCIO: Ubicación y número solo existen si está en servicio
+    const enServicio = estado === 'servicio';
+
     return {
         id, estado,
-        numero: _s(r.numero, 20),
+        numero: enServicio ? _s(r.numero, 20) : '',
         patrimonio,
         marca: _s(r.marca, 50),
         modelo: _s(r.modelo, 50),
         identificador: _s(r.identificador || r.serial || id.toUpperCase(), 80),
         unidades: Number.isInteger(r.unidades) && r.unidades > 0 ? r.unidades : null,
         notas: _s(r.notas, 200),
-        edificio: _s(r.edificio, 80),
-        piso: _s(r.piso, 30),
-        dependencia: _s(r.dependencia, 100),
+        edificio: enServicio ? _s(r.edificio, 80) : '',
+        piso: enServicio ? _s(r.piso, 30) : '',
+        dependencia: enServicio ? _s(r.dependencia, 100) : '',
         _updatedAt: typeof r._updatedAt === 'string' ? r._updatedAt : new Date().toISOString(),
     };
 }
@@ -665,7 +669,14 @@ function quitarDeServicio() {
         'Volverá al inventario como disponible.',
         () => {
             historial.empujar(`Quitar de servicio rack (${rack.numero})`);
-            actualizarRack(_editandoServicioId, { estado: 'inventario' });
+            // Se limpian los campos de servicio al volver al inventario
+            actualizarRack(_editandoServicioId, { 
+                estado: 'inventario',
+                numero: '',
+                edificio: '',
+                piso: '',
+                dependencia: ''
+            });
             renderTodo(); MM.cerrar('modal-rack-editar-servicio');
             toast('Rack devuelto al inventario', 'info');
         }
@@ -711,7 +722,14 @@ function toggleBajaRack() {
             'El rack quedará marcado como baja. Podés reactivarlo después.',
             () => {
                 historial.empujar(`Dar de baja rack (patrimonio ${rack.patrimonio})`);
-                actualizarRack(_editandoRackId, { estado: 'baja' });
+                // Limpieza absoluta de parámetros de servicio al irse de baja
+                actualizarRack(_editandoRackId, { 
+                    estado: 'baja',
+                    numero: '',
+                    edificio: '',
+                    piso: '',
+                    dependencia: ''
+                });
                 renderTodo(); MM.cerrar('modal-rack-editar');
                 toast(`Rack dado de baja`, 'info');
             }
@@ -1056,22 +1074,25 @@ function _getGrupos(racks) {
     if (_agrupInv === 'edificio') {
         const porEdificio = {};
         racks.forEach(r => {
-            const ed = r.edificio?.trim() || '(Sin edificio)';
+            const ed = r.edificio?.trim() || 'Depósito';
             if (!porEdificio[ed]) porEdificio[ed] = {};
             const piso = r.piso?.trim() || '(Sin piso)';
             if (!porEdificio[ed][piso]) porEdificio[ed][piso] = [];
             porEdificio[ed][piso].push(r);
         });
         const grupos = [];
-        Object.keys(porEdificio).sort((a, b) => a.localeCompare(b, 'es')).forEach(ed => {
+        
+        Object.keys(porEdificio).sort((a, b) => {
+            if (a === 'Depósito') return 1;
+            if (b === 'Depósito') return -1;
+            return a.localeCompare(b, 'es');
+        }).forEach(ed => {
             const pisos = porEdificio[ed];
             const keys = Object.keys(pisos).sort(_ordenarPisos);
             const totalEd = keys.reduce((s, k) => s + pisos[k].length, 0);
             if (keys.length === 1 && keys[0] === '(Sin piso)') {
-                // Sin pisos: grupo simple sin subgrupos
                 grupos.push({ titulo: ed, racks: pisos['(Sin piso)'], subgrupos: null });
             } else {
-                // Con pisos: grupo padre con subgrupos
                 const subgrupos = keys.map(piso => ({
                     titulo: `${piso}`,
                     racks: pisos[piso],
