@@ -55,7 +55,7 @@ function _sanitizarRack(r) {
     const patrimonio = _s(r.patrimonio, 30);
     if (!id || !RE_ID.test(id)) return null;
     const estado = ESTADOS_VALIDOS.has(r.estado) ? r.estado : 'inventario';
-    
+
     // ── REGLA DE NEGOCIO: Ubicación y número solo existen si está en servicio
     const enServicio = estado === 'servicio';
 
@@ -670,7 +670,7 @@ function quitarDeServicio() {
         () => {
             historial.empujar(`Quitar de servicio rack (${rack.numero})`);
             // Se limpian los campos de servicio al volver al inventario
-            actualizarRack(_editandoServicioId, { 
+            actualizarRack(_editandoServicioId, {
                 estado: 'inventario',
                 numero: '',
                 edificio: '',
@@ -723,7 +723,7 @@ function toggleBajaRack() {
             () => {
                 historial.empujar(`Dar de baja rack (patrimonio ${rack.patrimonio})`);
                 // Limpieza absoluta de parámetros de servicio al irse de baja
-                actualizarRack(_editandoRackId, { 
+                actualizarRack(_editandoRackId, {
                     estado: 'baja',
                     numero: '',
                     edificio: '',
@@ -821,8 +821,7 @@ function _restaurarCamposBusq() {
         if (filtroBtn) filtroBtn.classList.toggle('con-filtro', checked < total);
     } catch (_) { }
 }
-
-function _coincideBusqueda(r, busq, campos) {
+function _coincideBusqueda(r, busqRaw, campos) {
     const estadoVis = r.estado === 'inventario' ? 'disponible' : r.estado;
     const uniVis = r.unidades ? r.unidades + 'u' : '';
 
@@ -844,26 +843,35 @@ function _coincideBusqueda(r, busq, campos) {
         return '';
     };
 
+    // 1. Extraemos los "tokens" respetando frases entre comillas ("anexo c" -> no se separa)
+    const tokensRaw = busqRaw.match(/"[^"]+"|\S+/g) || [];
+    
+    // 2. Limpiamos las comillas y normalizamos cada bloque de búsqueda
+    const tokens = tokensRaw.map(t => normalizarTexto(t.replace(/"/g, '')));
+
     if (esTodo) {
-        const h = [r.numero, r.patrimonio, r.marca, r.modelo, r.identificador, r.notas, r.edificio, r.piso, r.dependencia, uniVis, estadoVis].join(' ');
-        return busq.split(' ').every(t => normalizarTexto(h).includes(t));
+        const h = normalizarTexto([r.numero, r.patrimonio, r.marca, r.modelo, r.identificador, r.notas, r.edificio, r.piso, r.dependencia, uniVis, estadoVis].join(' '));
+        // Todas las palabras (o frases enteras) deben estar en algún lugar del item
+        return tokens.every(t => h.includes(t));
     }
 
-    // Multi-campo: basta con que coincida en alguno
+    // Multi-campo: basta con que TODAS las palabras (o frases) coincidan en al menos UN campo en común
     return camposArr.some(c => {
         const h = normalizarTexto(_textoParaCampo(c));
-        if (c === 'edificio' || c === 'dependencia') return h.includes(busq);
-        return busq.split(' ').every(t => h.includes(t));
+        return tokens.every(t => h.includes(t));
     });
 }
 
 function _getRacksFiltrados() {
-    const busq = normalizarTexto(document.getElementById('busq-global')?.value || '');
+    // Tomamos el valor crudo sin normalizar acá, para no destruir las comillas
+    const busqRaw = document.getElementById('busq-global')?.value || '';
     let racks = [...state.racks];
-    if (busq) {
+    
+    if (busqRaw.trim()) {
         const campos = _getCamposBusq();
-        racks = racks.filter(r => _coincideBusqueda(r, busq, campos));
+        racks = racks.filter(r => _coincideBusqueda(r, busqRaw, campos));
     }
+    
     return _ordenarArray(racks, _sortInv.col, _sortInv.dir);
 }
 
@@ -1053,9 +1061,9 @@ function _getGrupos(racks) {
 
     if (_agrupInv === 'patrimonio') {
         const _patNorm = r => (r.patrimonio || '').trim().toLowerCase();
-        const aRelevar  = racks.filter(r => { const p = _patNorm(r); return !p || p === 'relevar'; });
-        const sinPatr   = racks.filter(r => _patNorm(r) === 'no');
-        const conPatr   = racks.filter(r => { const p = _patNorm(r); return p && p !== 'relevar' && p !== 'no'; });
+        const aRelevar = racks.filter(r => { const p = _patNorm(r); return !p || p === 'relevar'; });
+        const sinPatr = racks.filter(r => _patNorm(r) === 'no');
+        const conPatr = racks.filter(r => { const p = _patNorm(r); return p && p !== 'relevar' && p !== 'no'; });
         return [
             { titulo: 'Con patrimonio', racks: conPatr },
             { titulo: 'Sin patrimonio', racks: sinPatr },
@@ -1081,7 +1089,7 @@ function _getGrupos(racks) {
             porEdificio[ed][piso].push(r);
         });
         const grupos = [];
-        
+
         Object.keys(porEdificio).sort((a, b) => {
             if (a === 'Depósito') return 1;
             if (b === 'Depósito') return -1;
@@ -1152,7 +1160,7 @@ function renderInventario() {
             try {
                 const saved = localStorage.getItem(APP_KEY + 'grupos_abiertos');
                 if (saved !== null) abiertos = new Set(JSON.parse(saved));
-            } catch (_) {}
+            } catch (_) { }
         }
 
         if (gruposWrap) {
@@ -1326,21 +1334,21 @@ function importarDatos(modo) {
     } else {
         confirmar('¿Combinar datos?', alerta + 'Se agregarán los racks que no existan actualmente.', () => {
             historial.empujar('Combinar datos importados');
-            
+
             // Usar IDs para combinar de forma segura
             const idsActuales = new Set(state.racks.map(r => r.id));
             let n = 0;
-            (parsed.racks || []).forEach(r => { 
-                if (!idsActuales.has(r.id)) { 
-                    state.racks.push(r); 
-                    idsActuales.add(r.id); 
-                    n++; 
-                } 
+            (parsed.racks || []).forEach(r => {
+                if (!idsActuales.has(r.id)) {
+                    state.racks.push(r);
+                    idsActuales.add(r.id);
+                    n++;
+                }
             });
             const edsExist = new Set(state.edificios.map(e => e.toLowerCase()));
             (parsed.edificios || []).forEach(e => { if (!edsExist.has(e.toLowerCase())) { state.edificios.push(e); edsExist.add(e.toLowerCase()); } });
             state.edificios.sort((a, b) => a.localeCompare(b, 'es'));
-            
+
             guardar(); MM.cerrar('modal-importar'); _importarParsed = null;
             renderTodo(); toast(n > 0 ? `+${n} racks combinados` : 'Sin cambios', n > 0 ? 'success' : 'info');
         });
@@ -1429,7 +1437,7 @@ const GistSync = (() => {
             const data = await res.json();
             if (!gistId && data.id) { _cfg.gistId = data.id; const el = document.getElementById('gist-id'); if (el) el.value = data.id; _linkBtn(); }
             _cfg.lastSync = new Date().toISOString(); _guardarCfg(); _setStatusSync();
-            _maxRacksVistos = state.racks.length; 
+            _maxRacksVistos = state.racks.length;
             _alertaBorradoMostrada = false;
             if (!silent) toast('Datos subidos a Gist');
         } catch (err) { _setStatus(`Error: ${err.message}`); if (!silent) toast(`Error al subir: ${err.message}`, 'error'); }
@@ -1483,7 +1491,7 @@ const GistSync = (() => {
             const esValida = await verificarFirma(rawRemoto);
             const remoto = sanitizarEstado(rawRemoto);
             if (!remoto) throw new Error('Formato inválido');
-            
+
             const procesarBajada = () => {
                 _setBusy(true);
                 let nuevos = 0, actualizados = 0, nuevosEdificios = 0;
@@ -1496,7 +1504,7 @@ const GistSync = (() => {
                     } else {
                         // Rack existente: reemplazar solo si el remoto es más nuevo
                         const tsRemoto = new Date(r._updatedAt || 0).getTime();
-                        const tsLocal  = new Date(state.racks[idx]._updatedAt || 0).getTime();
+                        const tsLocal = new Date(state.racks[idx]._updatedAt || 0).getTime();
                         if (tsRemoto > tsLocal) {
                             state.racks[idx] = r;
                             actualizados++;
@@ -1558,7 +1566,7 @@ const GistSync = (() => {
                         state.racks.push(r); nuevos++;
                     } else {
                         const tsRemoto = new Date(r._updatedAt || 0).getTime();
-                        const tsLocal  = new Date(state.racks[idx]._updatedAt || 0).getTime();
+                        const tsLocal = new Date(state.racks[idx]._updatedAt || 0).getTime();
                         if (tsRemoto > tsLocal) { state.racks[idx] = r; actualizados++; }
                     }
                 });
@@ -1714,6 +1722,150 @@ function _init() {
 }
 
 // ═══════════════════════════════════════════════════════
+//  EXPORTAR REPORTE DE INVENTARIO
+// ═══════════════════════════════════════════════════════
+function generarReporteInventario() {
+    // 1. Tomamos los datos tal cual los ve el usuario (filtrados y ordenados)
+    const racks = _getRacksFiltrados();
+    if (!racks.length) {
+        toast('No hay datos para generar el reporte', 'info');
+        return;
+    }
+
+    // 2. Evaluamos si están agrupados
+    const grupos = _getGrupos(racks);
+    const fecha = new Date().toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' });
+    let htmlSecciones = '';
+
+    const thead = `<thead>
+        <tr>
+            <th>Estado</th>
+            <th>Patrimonio</th>
+            <th>Unidades</th>
+            <th>Marca</th>
+            <th>Modelo</th>
+            <th>Identificador</th>
+        </tr>
+    </thead>`;
+
+    const _filaRackHTML = (r) => {
+        // Formateo del estado para lectura
+        const est = r.estado === 'servicio' ? (r.numero || 'En servicio') : (r.estado === 'baja' ? 'Baja' : 'Disponible');
+        return `<tr>
+            <td><strong>${esc(est)}</strong></td>
+            <td>${esc(r.patrimonio || '—')}</td>
+            <td style="text-align: center;">${r.unidades != null ? esc(String(r.unidades)) + 'U' : '—'}</td>
+            <td>${esc(r.marca || '—')}</td>
+            <td>${esc(r.modelo || '—')}</td>
+            <td>${esc(r.identificador || '—')}</td>
+        </tr>`;
+    };
+
+    const _generarTabla = (titulo, items) => {
+        return `<section>
+            <h2>${esc(titulo)} <span style="font-size: 0.95rem; color: var(--muted); font-weight: normal;">(${items.length} racks)</span></h2>
+            <table>
+                ${thead}
+                <tbody>
+                    ${items.map(_filaRackHTML).join('')}
+                </tbody>
+            </table>
+        </section>`;
+    };
+
+    // 3. Generar las secciones de tablas según el agrupamiento
+    if (!grupos) {
+        // Vista plana sin agrupar
+        htmlSecciones = _generarTabla('Listado General de racks', racks);
+    } else {
+        // Vista agrupada
+        grupos.forEach(g => {
+            if (g.subgrupos) {
+                // Grupos con subniveles (Ej: Edificios -> Pisos)
+                g.subgrupos.forEach(sg => {
+                    htmlSecciones += _generarTabla(`${g.titulo} — Piso: ${sg.titulo}`, sg.racks);
+                });
+            } else {
+                // Grupos simples (Ej: Estado, Patrimonio)
+                htmlSecciones += _generarTabla(g.titulo, g.racks);
+            }
+        });
+    }
+
+    const _agrupLabel = typeof _agrupInv !== 'undefined' && _agrupInv !== 'ninguno' ? _agrupInv : 'sin agrupar';
+    
+    // ── NUEVO: Capturar texto de búsqueda ──
+    const terminoBusqueda = document.getElementById('busq-global')?.value.trim() || '';
+    const infoFiltro = terminoBusqueda ? `<br>Filtrado por: <strong>"${esc(terminoBusqueda)}"</strong>` : '';
+
+    // 4. Armar el HTML completo con CSS para pantalla e impresión (print)
+    const htmlCompleto = `<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Reporte de Inventario de racks— ${fecha}</title>
+    <style>
+        :root {
+            --blue: #3b64d2;
+            --border: #e2e6ef;
+            --muted: #5a6070;
+            --bg: #f5f6fa;
+            --card: #fff;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: #1a1d23; padding: 2rem 1rem 4rem; }
+        .reporte-wrap { max-width: 960px; margin: 0 auto; }
+        header { margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 2px solid var(--blue); display: flex; justify-content: space-between; align-items: flex-end; }
+        header h1 { font-size: 1.5rem; color: var(--blue); font-weight: 700; margin: 0; }
+        header .meta { font-size: 0.85rem; color: var(--muted); text-align: right; line-height: 1.4; }
+        section { background: var(--card); border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,.05); border: 1px solid var(--border); }
+        h2 { font-size: 1.1rem; margin-bottom: 1rem; color: #1a1d23; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        th, td { padding: 0.6rem 0.5rem; text-align: left; border-bottom: 1px solid var(--border); }
+        th { color: var(--muted); font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.02em; }
+        tr:last-child td { border-bottom: none; }
+        .btn-print { position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--blue); color: #fff; border: none; border-radius: 999px; padding: .8rem 1.5rem; font-size: .9rem; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(59,100,210,.3); transition: transform 0.2s; }
+        .btn-print:hover { transform: translateY(-2px); }
+        @media print {
+            .btn-print { display: none; }
+            body { background: #fff; padding: 0; }
+            section { box-shadow: none; border: none; padding: 0; margin-bottom: 2rem; page-break-inside: avoid; }
+            header { border-bottom: 2px solid #000; }
+        }
+    </style>
+</head>
+<body>
+    <div class="reporte-wrap">
+        <header>
+            <div><h1>📋 Reporte de Inventario de racks</h1></div>
+            <div class="meta">
+                Exportado el ${fecha}<br>
+                Criterio de agrupamiento: <strong>${_agrupLabel.toUpperCase()}</strong>
+                ${infoFiltro}
+            </div>
+        </header>
+        ${htmlSecciones}
+    </div>
+    <button class="btn-print" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>
+</body>
+</html>`;
+
+    // 5. Descargar el HTML de forma automática
+    const blob = new Blob([htmlCompleto], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `reporte-inventario-${new Date().toISOString().slice(0, 10)}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+
+    toast('Reporte generado correctamente', 'success');
+}
+
+// ═══════════════════════════════════════════════════════
 //  BINDINGS
 // ═══════════════════════════════════════════════════════
 function _initBindings() {
@@ -1828,13 +1980,16 @@ function _initBindings() {
     document.getElementById('panel-inventario')?.addEventListener('click', e => {
         const th = e.target.closest('th.th-sortable');
         if (!th || !th.dataset.sort) return;
-        
+
         const col = th.dataset.sort;
         if (_sortInv.col === col) _sortInv.dir *= -1;
         else { _sortInv.col = col; _sortInv.dir = 1; }
         try { localStorage.setItem(APP_KEY + 'sort_inv', JSON.stringify(_sortInv)); } catch (_) { }
         renderInventario();
     });
+
+    // -- evento para el reporte --
+    document.getElementById('btn-reporte-inv')?.addEventListener('click', generarReporteInventario);
 
     document.querySelectorAll('#panel-servicio th.th-sortable').forEach(th => {
         th.addEventListener('click', () => {
@@ -1985,7 +2140,7 @@ function _initBindings() {
         const guardarGruposAbiertos = () => {
             const busq = normalizarTexto(document.getElementById('busq-global')?.value || '');
             if (busq) return; // Evita machacar la configuración real con los resultados abiertos de la búsqueda
-            
+
             const arr = [];
             invGruposWrap.querySelectorAll('.inv-grupo-tr-header.open').forEach(el => {
                 if (el.dataset.grupoKey) arr.push(el.dataset.grupoKey);
@@ -2000,7 +2155,7 @@ function _initBindings() {
                 const isOpen = main.classList.contains('open');
                 let next = main.nextElementSibling;
                 let isSubOpen = true;
-                
+
                 while (next && !(next.classList.contains('inv-grupo-tr-header') && !next.classList.contains('inv-grupo-tr-sub'))) {
                     if (next.classList.contains('inv-grupo-tr-sub')) {
                         next.hidden = !isOpen;
@@ -2018,7 +2173,7 @@ function _initBindings() {
         invGruposWrap.addEventListener('pointerdown', e => {
             const header = e.target.closest('.inv-grupo-tr-header');
             if (!header) return;
-            
+
             isLongPress = false;
             startY = e.clientY;
             startX = e.clientX;
@@ -2036,7 +2191,7 @@ function _initBindings() {
                 } else {
                     const allMains = invGruposWrap.querySelectorAll('.inv-grupo-tr-header:not(.inv-grupo-tr-sub)');
                     allMains.forEach(main => main.classList.toggle('open', targetState));
-                    
+
                     if (!targetState) {
                         const allSubs = invGruposWrap.querySelectorAll('.inv-grupo-tr-sub');
                         allSubs.forEach(sub => sub.classList.remove('open'));
@@ -2058,7 +2213,7 @@ function _initBindings() {
         invGruposWrap.addEventListener('click', e => {
             const tr = e.target.closest('tr[data-rack-id]');
             if (tr) { abrirModalEditarRack(tr.dataset.rackId); return; }
-            
+
             const header = e.target.closest('.inv-grupo-tr-header');
             if (!header) return;
 
@@ -2079,7 +2234,7 @@ function _initBindings() {
                 }
             } else {
                 let next = header.nextElementSibling;
-                let isSubOpen = true; 
+                let isSubOpen = true;
                 while (next && !(next.classList.contains('inv-grupo-tr-header') && !next.classList.contains('inv-grupo-tr-sub'))) {
                     if (next.classList.contains('inv-grupo-tr-sub')) {
                         next.hidden = !isOpen;

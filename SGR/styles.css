@@ -1412,12 +1412,6 @@ input[type="file"].hidden {
     color: var(--c-red);
 }
 
-/* Fila con baja: atenuar */
-tr.rack-estado-baja td {
-    opacity: 0.55;
-}
-
-
 /* ════════════════════════════════════════════════════════
    STATS & DASHBOARD
    ════════════════════════════════════════════════════════ */
