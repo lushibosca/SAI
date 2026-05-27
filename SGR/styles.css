@@ -2124,3 +2124,32 @@ kbd {
     padding: 0.1rem 0.55rem;
     color: var(--text-muted);
 }
+
+/* Sub-grupo (piso dentro de edificio) */
+.inv-grupo-tr-sub .inv-grupo-header {
+    padding-left: 2rem;
+    background: var(--input-bg);
+    border-top-color: transparent;
+}
+
+.inv-grupo-tr-sub .inv-grupo-header:hover {
+    background: var(--bg-card);
+}
+
+.inv-grupo-tr-sub .inv-grupo-titulo {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: none;
+    letter-spacing: 0.02em;
+}
+
+.inv-grupo-tr-sub .inv-grupo-chevron {
+    width: 12px;
+    height: 12px;
+}
+
+.inv-grupo-tr-sub .inv-grupo-badge {
+    font-size: 0.7rem;
+    padding: 0.05rem 0.45rem;
+}

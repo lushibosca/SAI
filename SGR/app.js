@@ -1065,13 +1065,18 @@ function _getGrupos(racks) {
         const grupos = [];
         Object.keys(porEdificio).sort((a, b) => a.localeCompare(b, 'es')).forEach(ed => {
             const pisos = porEdificio[ed];
-        const keys = Object.keys(pisos).sort(_ordenarPisos);
+            const keys = Object.keys(pisos).sort(_ordenarPisos);
+            const totalEd = keys.reduce((s, k) => s + pisos[k].length, 0);
             if (keys.length === 1 && keys[0] === '(Sin piso)') {
-                grupos.push({ titulo: ed, racks: pisos['(Sin piso)'] });
+                // Sin pisos: grupo simple sin subgrupos
+                grupos.push({ titulo: ed, racks: pisos['(Sin piso)'], subgrupos: null });
             } else {
-                keys.forEach(piso => {
-                    grupos.push({ titulo: `${ed} — Piso: ${piso}`, racks: pisos[piso] });
-                });
+                // Con pisos: grupo padre con subgrupos
+                const subgrupos = keys.map(piso => ({
+                    titulo: `PISO: ${piso}`,
+                    racks: pisos[piso],
+                }));
+                grupos.push({ titulo: ed, racks: [], totalCount: totalEd, subgrupos });
             }
         });
         return grupos;
@@ -1135,28 +1140,58 @@ function renderInventario() {
                 </tr>
             </thead>`;
 
+            const _filaRack = (r, visible) =>
+                `<tr class="tr-clickable rack-estado-${r.estado}" data-rack-id="${esc(r.id)}"${visible ? '' : ' hidden'}>
+                    <td>${_badgeEstado(r)}</td>
+                    <td class="td-muted">${esc(r.patrimonio || '—')}</td>
+                    <td class="td-muted td-center">${r.unidades != null ? esc(String(r.unidades)) + 'U' : '—'}</td>
+                    <td>${esc(r.marca || '—')}</td>
+                    <td class="td-muted">${esc(r.modelo || '—')}</td>
+                    <td class="td-muted">${esc(r.identificador || '—')}</td>
+                </tr>`;
+
             const tbodyRows = grupos.map((g, i) => {
                 const key = g.titulo;
                 const isOpen = abiertos.size ? abiertos.has(key) : i === 0;
-                const filas = g.racks.map(r =>
-                    `<tr class="tr-clickable rack-estado-${r.estado}" data-rack-id="${esc(r.id)}"${isOpen ? '' : ' hidden'}>
-                        <td>${_badgeEstado(r)}</td>
-                        <td class="td-muted">${esc(r.patrimonio || '—')}</td>
-                        <td class="td-muted td-center">${r.unidades != null ? esc(String(r.unidades)) + 'U' : '—'}</td>
-                        <td>${esc(r.marca || '—')}</td>
-                        <td class="td-muted">${esc(r.modelo || '—')}</td>
-                        <td class="td-muted">${esc(r.identificador || '—')}</td>
-                    </tr>`
-                ).join('');
-                return `<tr class="inv-grupo-tr-header${isOpen ? ' open' : ''}" data-grupo-key="${esc(key)}">
-                    <td colspan="6">
-                        <div class="inv-grupo-header">
-                            <svg class="svg-icon inv-grupo-chevron"><use href="#icon-chevron-right"/></svg>
-                            <span class="inv-grupo-titulo">${esc(g.titulo)}</span>
-                            <span class="inv-grupo-badge">${g.racks.length}</span>
-                        </div>
-                    </td>
-                </tr>${filas}`;
+
+                if (g.subgrupos) {
+                    // Grupo padre (edificio) con subgrupos de pisos
+                    const subRows = g.subgrupos.map(sg => {
+                        const subKey = `${key}__${sg.titulo}`;
+                        const subOpen = abiertos.size ? abiertos.has(subKey) : isOpen;
+                        const filasSub = sg.racks.map(r => _filaRack(r, isOpen && subOpen)).join('');
+                        return `<tr class="inv-grupo-tr-header inv-grupo-tr-sub${subOpen ? ' open' : ''}" data-grupo-key="${esc(subKey)}"${isOpen ? '' : ' hidden'}>
+                            <td colspan="6">
+                                <div class="inv-grupo-header inv-grupo-header-sub">
+                                    <svg class="svg-icon inv-grupo-chevron"><use href="#icon-chevron-right"/></svg>
+                                    <span class="inv-grupo-titulo">${esc(sg.titulo)}</span>
+                                    <span class="inv-grupo-badge">${sg.racks.length}</span>
+                                </div>
+                            </td>
+                        </tr>${filasSub}`;
+                    }).join('');
+                    return `<tr class="inv-grupo-tr-header${isOpen ? ' open' : ''}" data-grupo-key="${esc(key)}">
+                        <td colspan="6">
+                            <div class="inv-grupo-header">
+                                <svg class="svg-icon inv-grupo-chevron"><use href="#icon-chevron-right"/></svg>
+                                <span class="inv-grupo-titulo">${esc(g.titulo)}</span>
+                                <span class="inv-grupo-badge">${g.totalCount}</span>
+                            </div>
+                        </td>
+                    </tr>${subRows}`;
+                } else {
+                    // Grupo simple (sin subgrupos de pisos)
+                    const filas = g.racks.map(r => _filaRack(r, isOpen)).join('');
+                    return `<tr class="inv-grupo-tr-header${isOpen ? ' open' : ''}" data-grupo-key="${esc(key)}">
+                        <td colspan="6">
+                            <div class="inv-grupo-header">
+                                <svg class="svg-icon inv-grupo-chevron"><use href="#icon-chevron-right"/></svg>
+                                <span class="inv-grupo-titulo">${esc(g.titulo)}</span>
+                                <span class="inv-grupo-badge">${g.racks.length}</span>
+                            </div>
+                        </td>
+                    </tr>${filas}`;
+                }
             }).join('');
 
             gruposWrap.innerHTML = `<div class="table-wrap inv-tabla-agrupada">
@@ -1913,13 +1948,31 @@ function _initBindings() {
         if (tr) { abrirModalEditarRack(tr.dataset.rackId); return; }
         const header = e.target.closest('.inv-grupo-tr-header');
         if (!header) return;
-        const key = header.dataset.grupoKey;
+
+        const isSub = header.classList.contains('inv-grupo-tr-sub');
         const isOpen = header.classList.toggle('open');
-        // Mostrar u ocultar las filas de datos que siguen hasta el próximo header
-        let next = header.nextElementSibling;
-        while (next && !next.classList.contains('inv-grupo-tr-header')) {
-            next.hidden = !isOpen;
-            next = next.nextElementSibling;
+
+        if (isSub) {
+            // Subgrupo (piso): mostrar/ocultar solo las filas de rack directas
+            let next = header.nextElementSibling;
+            while (next && !next.classList.contains('inv-grupo-tr-header')) {
+                next.hidden = !isOpen;
+                next = next.nextElementSibling;
+            }
+        } else {
+            // Grupo padre (edificio): mostrar/ocultar todos los hijos (sub-headers y sus filas)
+            let next = header.nextElementSibling;
+            while (next && next.classList.contains('inv-grupo-tr-header') && next.classList.contains('inv-grupo-tr-sub')) {
+                next.hidden = !isOpen;
+                // También ocultar/mostrar sus filas de rack según el estado abierto del sub-header
+                const subOpen = next.classList.contains('open');
+                let rack = next.nextElementSibling;
+                while (rack && !rack.classList.contains('inv-grupo-tr-header')) {
+                    rack.hidden = !isOpen || !subOpen;
+                    rack = rack.nextElementSibling;
+                }
+                next = rack;
+            }
         }
     });
 }
