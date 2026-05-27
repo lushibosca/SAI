@@ -254,6 +254,13 @@ body.modal-open {
     font-weight: 700;
 }
 
+.modal-header-version {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            letter-spacing: 0.04em;
+        }
+
 /* Ícono de logo en el header */
 .header-logo-icon {
     width: 28px;
@@ -481,8 +488,8 @@ body.modal-open {
     transform: translateY(-10px) scale(0.95);
     transform-origin: top right;
     transition: opacity 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275),
-                visibility 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275),
-                transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        visibility 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+        transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .busq-filtro-menu.open {
@@ -1996,8 +2003,8 @@ kbd {
     transform: translateY(-10px) scale(0.95);
     transform-origin: top right;
     transition: opacity 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275),
-                visibility 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275),
-                transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        visibility 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+        transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .inv-vista-menu.open {
@@ -2041,7 +2048,7 @@ kbd {
 }
 
 .inv-vista-opt.activo {
-    color: var(--accent);
+    color: var(--c-green);
     font-weight: 700;
 }
 
@@ -2132,4 +2139,16 @@ kbd {
 .inv-grupo-tr-sub .inv-grupo-badge {
     font-size: 0.7rem;
     padding: 0.05rem 0.45rem;
+}
+
+/* Estilo para el botón de modo oscuro dentro del modal de ajustes */
+.btn-dark-mode-modal {
+    flex: none;
+    background: var(--input-bg) ;
+    border: var(--border-w) solid var(--border) ;
+    color: var(--text-main);
+}
+
+.btn-dark-mode-modal:hover {
+    filter: var(--hover);
 }
