@@ -1311,7 +1311,7 @@ input[type="file"].hidden {
     border-top: 1px solid var(--border);
 }
 
-.modal-footer button {
+.modal-footer button:not(.btn-dark-mode-modal) {
     flex: 1;
 }
 
@@ -2313,9 +2313,16 @@ kbd {
 /* Estilo para el botón de modo oscuro dentro del modal de ajustes */
 .btn-dark-mode-modal {
     flex: none;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border-radius: 50% !important;
     background: var(--input-bg);
     border: var(--border-w) solid var(--border);
     color: var(--text-main);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .btn-dark-mode-modal:hover {
