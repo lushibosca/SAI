@@ -2100,6 +2100,7 @@ kbd {
     user-select: none;
     background: var(--bg-card);
     transition: background var(--t-fast);
+    border-bottom: 1px solid var(--border);
 }
 
 .inv-grupo-chevron {
@@ -2108,6 +2109,7 @@ kbd {
     color: var(--text-muted);
     transition: transform 0.2s ease;
     flex-shrink: 0;
+    margin-left: auto;
 }
 
 .inv-grupo-tr-header.open .inv-grupo-chevron {
@@ -2120,22 +2122,23 @@ kbd {
     text-transform: uppercase;
     letter-spacing: 0.04em;
     color: var(--c-orange);
-    flex: 1;
 }
 
 .inv-grupo-badge {
     font-size: 0.75rem;
     font-weight: 600;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
+    background: transparent;
+    border: 1.5px solid var(--c-orange);
     border-radius: 999px;
     padding: 0.1rem 0.55rem;
-    color: var(--text-muted);
+    color: var(--c-orange);
+    flex-shrink: 0;
 }
 
 /* Sub-grupo (piso dentro de edificio) */
 .inv-grupo-tr-sub .inv-grupo-header {
     border-left: 2px solid var(--c-orange);
+    border-bottom: none;
 }
 
 .inv-grupo-tr-sub .inv-grupo-header:hover {
@@ -2167,6 +2170,8 @@ kbd {
 .inv-grupo-tr-sub .inv-grupo-badge {
     font-size: 0.7rem;
     padding: 0.05rem 0.45rem;
+    border-color: var(--text-muted);
+    color: var(--text-muted);
 }
 
 /* ════════════════════════════════════════════════════════

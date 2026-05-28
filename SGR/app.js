@@ -1200,9 +1200,9 @@ function renderInventario() {
                         return `<tr class="inv-grupo-tr-header inv-grupo-tr-sub${subOpen ? ' open' : ''}" data-grupo-key="${esc(subKey)}"${isOpen ? '' : ' hidden'}>
                             <td colspan="6">
                                 <div class="inv-grupo-header inv-grupo-header-sub">
-                                    <svg class="svg-icon inv-grupo-chevron"><use href="#icon-chevron-right"/></svg>
                                     <span class="inv-grupo-titulo">${esc(sg.titulo)}</span>
                                     <span class="inv-grupo-badge">${sg.racks.length}</span>
+                                    <svg class="svg-icon inv-grupo-chevron"><use href="#icon-chevron-right"/></svg>
                                 </div>
                             </td>
                         </tr>${filasSub}`;
@@ -1210,9 +1210,9 @@ function renderInventario() {
                     return `<tr class="inv-grupo-tr-header${isOpen ? ' open' : ''}" data-grupo-key="${esc(key)}">
                         <td colspan="6">
                             <div class="inv-grupo-header">
-                                <svg class="svg-icon inv-grupo-chevron"><use href="#icon-chevron-right"/></svg>
                                 <span class="inv-grupo-titulo">${esc(g.titulo)}</span>
                                 <span class="inv-grupo-badge">${g.totalCount}</span>
+                                <svg class="svg-icon inv-grupo-chevron"><use href="#icon-chevron-right"/></svg>
                             </div>
                         </td>
                     </tr>${subRows}`;
@@ -1222,9 +1222,9 @@ function renderInventario() {
                     return `<tr class="inv-grupo-tr-header${isOpen ? ' open' : ''}" data-grupo-key="${esc(key)}">
                         <td colspan="6">
                             <div class="inv-grupo-header">
-                                <svg class="svg-icon inv-grupo-chevron"><use href="#icon-chevron-right"/></svg>
                                 <span class="inv-grupo-titulo">${esc(g.titulo)}</span>
                                 <span class="inv-grupo-badge">${g.racks.length}</span>
+                                <svg class="svg-icon inv-grupo-chevron"><use href="#icon-chevron-right"/></svg>
                             </div>
                         </td>
                     </tr>${filas}`;
