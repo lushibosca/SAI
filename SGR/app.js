@@ -1724,7 +1724,7 @@ function _init() {
 // ═══════════════════════════════════════════════════════
 //  EXPORTAR REPORTE DE INVENTARIO
 // ═══════════════════════════════════════════════════════
-function generarReporteInventario() {
+function generarReporteInventario(gruposFiltrados) {
     // 1. Tomamos los datos tal cual los ve el usuario (filtrados y ordenados)
     const racks = _getRacksFiltrados();
     if (!racks.length) {
@@ -1732,8 +1732,8 @@ function generarReporteInventario() {
         return;
     }
 
-    // 2. Evaluamos si están agrupados
-    const grupos = _getGrupos(racks);
+    // 2. Usamos los grupos pre-filtrados que vienen del modal (o los recalculamos si es vista plana)
+    const grupos = gruposFiltrados !== undefined ? gruposFiltrados : _getGrupos(racks);
     const fecha = new Date().toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' });
     let htmlSecciones = '';
 
@@ -2134,9 +2134,73 @@ function _initBindings() {
         });
     }
 
-    // ── Botón reporte inventario (sin lógica por ahora) ──
+    // ── Botón reporte inventario ──
     document.getElementById('btn-reporte-inv')?.addEventListener('click', () => {
-        toast('Próximamente: generación de reportes', 'info');
+        const racks = _getRacksFiltrados();
+        if (!racks.length) { toast('No hay datos para generar el reporte', 'info'); return; }
+
+        const grupos = _getGrupos(racks);
+        const lista = document.getElementById('reporte-grupos-lista');
+        const desc = document.getElementById('reporte-modal-desc');
+        const toggleAllRow = document.getElementById('reporte-toggle-all-row');
+        const toggleAll = document.getElementById('reporte-toggle-all');
+
+        if (!grupos) {
+            // Vista plana: no hay grupos para elegir, generar directo
+            generarReporteInventario(null);
+            return;
+        }
+
+        // Armar la lista de grupos como checkboxes
+        const _labelGrupo = (g) => g.titulo + (g.totalCount != null ? ` (${g.totalCount})` : ` (${g.racks.length})`);
+
+        lista.innerHTML = grupos.map((g, i) => {
+            const count = g.totalCount != null ? g.totalCount : g.racks.length;
+            return `<label class="reporte-grupo-item">
+                <input type="checkbox" class="reporte-grupo-check" data-idx="${i}" checked>
+                <span class="reporte-grupo-nombre">${esc(g.titulo)}</span>
+                <span class="reporte-grupo-count">${count}</span>
+            </label>`;
+        }).join('');
+
+        const labels = { patrimonio: 'patrimonio', estado: 'estado', edificio: 'edificio' };
+        desc.textContent = `Vista agrupada por ${labels[_agrupInv] || _agrupInv}. Elegí qué grupos incluir:`;
+        toggleAllRow.removeAttribute('hidden');
+        toggleAll.checked = true;
+
+        // Sync toggle-all
+        const _syncToggleAll = () => {
+            const checks = [...lista.querySelectorAll('.reporte-grupo-check')];
+            const allChecked = checks.every(c => c.checked);
+            const noneChecked = checks.every(c => !c.checked);
+            toggleAll.checked = allChecked;
+            toggleAll.indeterminate = !allChecked && !noneChecked;
+            document.getElementById('reporte-confirmar-btn').disabled = noneChecked;
+        };
+
+        lista.querySelectorAll('.reporte-grupo-check').forEach(cb => {
+            cb.addEventListener('change', _syncToggleAll);
+        });
+
+        toggleAll.addEventListener('change', () => {
+            lista.querySelectorAll('.reporte-grupo-check').forEach(cb => { cb.checked = toggleAll.checked; });
+            document.getElementById('reporte-confirmar-btn').disabled = !toggleAll.checked;
+        });
+
+        document.getElementById('reporte-confirmar-btn').disabled = false;
+        MM.abrir('modal-reporte');
+    });
+
+    document.getElementById('reporte-cancelar-btn')?.addEventListener('click', () => MM.cerrar('modal-reporte'));
+
+    document.getElementById('reporte-confirmar-btn')?.addEventListener('click', () => {
+        const racks = _getRacksFiltrados();
+        const grupos = _getGrupos(racks);
+        const checks = [...document.querySelectorAll('.reporte-grupo-check')];
+        const seleccionados = new Set(checks.filter(c => c.checked).map(c => parseInt(c.dataset.idx)));
+        const gruposFiltrados = grupos ? grupos.filter((_, i) => seleccionados.has(i)) : null;
+        MM.cerrar('modal-reporte');
+        generarReporteInventario(gruposFiltrados);
     });
 
     // ── Colapso de grupos (delegado en el wrapper) ──

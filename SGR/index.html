@@ -923,6 +923,36 @@
         </div>
     </div>
 
+    <!-- MODAL REPORTE -->
+    <div class="modal" id="modal-reporte">
+        <div class="modal-content modal-content-md">
+            <div class="modal-header">
+                <h3>
+                    <svg class="svg-icon"><use href="#icon-report" /></svg>
+                    Generar reporte
+                </h3>
+            </div>
+            <div class="modal-body modal-body-pb">
+                <p class="reporte-modal-desc" id="reporte-modal-desc"></p>
+                <div id="reporte-grupos-lista" class="reporte-grupos-lista"></div>
+                <label class="reporte-toggle-all-row" id="reporte-toggle-all-row">
+                    <input type="checkbox" id="reporte-toggle-all" checked>
+                    <span>Seleccionar / deseleccionar todos</span>
+                </label>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-primary btn-flex" id="reporte-confirmar-btn">
+                    <svg class="svg-icon"><use href="#icon-download" /></svg>
+                    Generar
+                </button>
+                <button class="btn-flex" id="reporte-cancelar-btn">
+                    <svg class="svg-icon"><use href="#icon-cancelar" /></svg>
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div id="busq-filtro-menu" class="busq-filtro-menu">
         <div class="busq-filtro-header">
             <span>CAMPOS</span>
