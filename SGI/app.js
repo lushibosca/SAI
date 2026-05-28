@@ -1742,6 +1742,7 @@ function renderMateriales() {
 //  STATS
 // ═══════════════════════════════════════════════════════
 let _intervaloTop5 = null; // Variable global para controlar la rotación
+let _intervaloStockBajo = null; // Variable global para controlar la rotación de stock bajo
 
 function renderStats() {
     const totalMats = state.materiales.length;
@@ -1810,6 +1811,28 @@ function renderStats() {
                 `;
     }
 
+    // Stock bajo: materiales con umbralBajo configurado y stock actual <= umbralBajo
+    const stockBajoList = state.materiales
+        .filter(m => m.umbralBajo !== null && m.umbralBajo !== undefined)
+        .map(m => ({ ...m, stockActual: calcStock(m.id) }))
+        .filter(m => m.stockActual <= m.umbralBajo)
+        .sort((a, b) => (a.stockActual - a.umbralBajo) - (b.stockActual - b.umbralBajo)); // más críticos primero
+
+    let stockBajoHtml = `
+                <span class="stat-chip-label stat-chip-label-stock-bajo"><svg class="svg-icon"><use href="#icon-umbral"/></svg> Stock bajo</span>
+                <span class="stat-chip-value">0</span>
+                <span class="stat-chip-sub">sin alertas</span>
+            `;
+
+    if (stockBajoList.length > 0) {
+        const primero = stockBajoList[0];
+        stockBajoHtml = `
+                    <span class="stat-chip-label stat-chip-label-stock-bajo fade-transition" id="stock-bajo-label">Stock bajo #1 de ${stockBajoList.length}</span>
+                    <span class="stat-chip-value truncate fade-transition" id="stock-bajo-nombre" title="${esc(primero.nombre)}">${esc(primero.nombre)}</span>
+                    <span class="stat-chip-sub fade-transition" id="stock-bajo-sub">${primero.stockActual} / umbral ${primero.umbralBajo}</span>
+                `;
+    }
+
     const labelMovs = modoAnio ? `en ${_anioFiltro}` : 'en total';
 
     document.getElementById('stats-grid').innerHTML = `
@@ -1829,6 +1852,9 @@ function renderStats() {
                 </div>
                 <div class="stat-chip chip-top5" id="chip-top5">
                     ${top5Html}
+                </div>
+                <div class="stat-chip chip-stock-bajo${stockBajoList.length > 0 ? ' stat-chip-clickable' : ''}" id="chip-stock-bajo">
+                    ${stockBajoHtml}
                 </div>
             `;
 
@@ -1874,6 +1900,48 @@ function renderStats() {
             };
         }
 
+    }
+
+    // ── ROTACIÓN DEL CHIP STOCK BAJO ──
+    if (_intervaloStockBajo) clearInterval(_intervaloStockBajo);
+
+    if (stockBajoList.length > 1) {
+        let sbIdx = 0;
+
+        function _mostrarStockBajo(i) {
+            const lbl = document.getElementById('stock-bajo-label');
+            const nom = document.getElementById('stock-bajo-nombre');
+            const sub = document.getElementById('stock-bajo-sub');
+            if (!lbl || !nom || !sub) { clearInterval(_intervaloStockBajo); return; }
+            lbl.style.opacity = 0; nom.style.opacity = 0; sub.style.opacity = 0;
+            setTimeout(() => {
+                const item = stockBajoList[i];
+                lbl.textContent = `Stock bajo #${i + 1} de ${stockBajoList.length}`;
+                nom.textContent = item.nombre;
+                nom.title = item.nombre;
+                sub.textContent = `${item.stockActual} / umbral ${item.umbralBajo}`;
+                lbl.style.opacity = 1; nom.style.opacity = 1; sub.style.opacity = 1;
+            }, 250);
+        }
+
+        function _arrancarTimerSB() {
+            if (_intervaloStockBajo) clearInterval(_intervaloStockBajo);
+            _intervaloStockBajo = setInterval(() => {
+                sbIdx = (sbIdx + 1) % stockBajoList.length;
+                _mostrarStockBajo(sbIdx);
+            }, 3000);
+        }
+
+        _arrancarTimerSB();
+
+        const chipSB = document.getElementById('chip-stock-bajo');
+        if (chipSB) {
+            chipSB.onclick = () => {
+                sbIdx = (sbIdx + 1) % stockBajoList.length;
+                _mostrarStockBajo(sbIdx);
+                _arrancarTimerSB();
+            };
+        }
     }
 }
 

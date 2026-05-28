@@ -2090,6 +2090,18 @@
             overflow: hidden;
         }
 
+        .chip-stock-bajo {
+            overflow: hidden;
+        }
+
+        .stat-chip-label-stock-bajo {
+            color: var(--c-gold);
+            font-size: 1rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
         .mov-sep {
             color: var(--border);
         }
