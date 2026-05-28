@@ -1806,13 +1806,7 @@ function generarReporteInventario(gruposFiltrados) {
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Reporte de Inventario de racks— ${fecha}</title>
     <style>
-        :root {
-            --blue: #3b64d2;
-            --border: #e2e6ef;
-            --muted: #5a6070;
-            --bg: #f5f6fa;
-            --card: #fff;
-        }
+        :root { --blue: #4c72ac; --border: #e2e6ef; --muted: #5a6070; --bg: #f5f6fa; --card: #fff; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: #1a1d23; padding: 2rem 1rem 4rem; }
         .reporte-wrap { max-width: 960px; margin: 0 auto; }
@@ -2142,8 +2136,7 @@ function _initBindings() {
         const grupos = _getGrupos(racks);
         const lista = document.getElementById('reporte-grupos-lista');
         const desc = document.getElementById('reporte-modal-desc');
-        const toggleAllRow = document.getElementById('reporte-toggle-all-row');
-        const toggleAll = document.getElementById('reporte-toggle-all');
+        const toggleAllBtn = document.getElementById('reporte-toggle-all-btn');
 
         if (!grupos) {
             // Vista plana: no hay grupos para elegir, generar directo
@@ -2151,30 +2144,31 @@ function _initBindings() {
             return;
         }
 
-        // Armar la lista de grupos como checkboxes
-        const _labelGrupo = (g) => g.titulo + (g.totalCount != null ? ` (${g.totalCount})` : ` (${g.racks.length})`);
-
+        // Armar la lista de grupos como checkboxes con subtítulo de conteo
         lista.innerHTML = grupos.map((g, i) => {
             const count = g.totalCount != null ? g.totalCount : g.racks.length;
             return `<label class="reporte-grupo-item">
                 <input type="checkbox" class="reporte-grupo-check" data-idx="${i}" checked>
-                <span class="reporte-grupo-nombre">${esc(g.titulo)}</span>
-                <span class="reporte-grupo-count">${count}</span>
+                <span class="reporte-grupo-texto">
+                    <span class="reporte-grupo-nombre">${esc(g.titulo)}</span>
+                    <span class="reporte-grupo-sub">${count} rack(s) en este bloque</span>
+                </span>
             </label>`;
         }).join('');
 
-        const labels = { patrimonio: 'patrimonio', estado: 'estado', edificio: 'edificio' };
-        desc.textContent = `Vista agrupada por ${labels[_agrupInv] || _agrupInv}. Elegí qué grupos incluir:`;
-        toggleAllRow.removeAttribute('hidden');
-        toggleAll.checked = true;
+        const labels = { patrimonio: 'GRUPOS DE LA VISTA A INCLUIR', estado: 'GRUPOS DE LA VISTA A INCLUIR', edificio: 'GRUPOS DE LA VISTA A INCLUIR' };
+        desc.textContent = labels[_agrupInv] || 'GRUPOS DE LA VISTA A INCLUIR';
 
-        // Sync toggle-all
+        // Estado inicial del botón toggle
+        let _todosSeleccionados = true;
+        if (toggleAllBtn) toggleAllBtn.textContent = 'Deseleccionar todo';
+
         const _syncToggleAll = () => {
             const checks = [...lista.querySelectorAll('.reporte-grupo-check')];
             const allChecked = checks.every(c => c.checked);
             const noneChecked = checks.every(c => !c.checked);
-            toggleAll.checked = allChecked;
-            toggleAll.indeterminate = !allChecked && !noneChecked;
+            _todosSeleccionados = allChecked;
+            if (toggleAllBtn) toggleAllBtn.textContent = allChecked ? 'Deseleccionar todo' : 'Seleccionar todo';
             document.getElementById('reporte-confirmar-btn').disabled = noneChecked;
         };
 
@@ -2182,13 +2176,18 @@ function _initBindings() {
             cb.addEventListener('change', _syncToggleAll);
         });
 
-        toggleAll.addEventListener('change', () => {
-            lista.querySelectorAll('.reporte-grupo-check').forEach(cb => { cb.checked = toggleAll.checked; });
-            document.getElementById('reporte-confirmar-btn').disabled = !toggleAll.checked;
-        });
-
         document.getElementById('reporte-confirmar-btn').disabled = false;
         MM.abrir('modal-reporte');
+    });
+
+    document.getElementById('reporte-toggle-all-btn')?.addEventListener('click', () => {
+        const lista = document.getElementById('reporte-grupos-lista');
+        const checks = [...lista.querySelectorAll('.reporte-grupo-check')];
+        const allChecked = checks.every(c => c.checked);
+        checks.forEach(cb => { cb.checked = !allChecked; });
+        const btn = document.getElementById('reporte-toggle-all-btn');
+        if (btn) btn.textContent = allChecked ? 'Seleccionar todo' : 'Deseleccionar todo';
+        document.getElementById('reporte-confirmar-btn').disabled = allChecked;
     });
 
     document.getElementById('reporte-cancelar-btn')?.addEventListener('click', () => MM.cerrar('modal-reporte'));

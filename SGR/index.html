@@ -933,20 +933,18 @@
                 </h3>
             </div>
             <div class="modal-body modal-body-pb">
-                <p class="reporte-modal-desc" id="reporte-modal-desc"></p>
+                <div class="reporte-section-header">
+                    <span class="reporte-section-label" id="reporte-modal-desc">GRUPOS DE LA VISTA A INCLUIR</span>
+                    <button class="reporte-toggle-all-btn" id="reporte-toggle-all-btn">Deseleccionar todo</button>
+                </div>
                 <div id="reporte-grupos-lista" class="reporte-grupos-lista"></div>
-                <label class="reporte-toggle-all-row" id="reporte-toggle-all-row">
-                    <input type="checkbox" id="reporte-toggle-all" checked>
-                    <span>Seleccionar / deseleccionar todos</span>
-                </label>
             </div>
-            <div class="modal-footer">
-                <button class="btn-primary btn-flex" id="reporte-confirmar-btn">
+            <div class="modal-footer reporte-footer">
+                <button class="btn-primary btn-flex reporte-btn-descargar" id="reporte-confirmar-btn">
                     <svg class="svg-icon"><use href="#icon-download" /></svg>
-                    Generar
+                    Descargar
                 </button>
-                <button class="btn-flex" id="reporte-cancelar-btn">
-                    <svg class="svg-icon"><use href="#icon-cancelar" /></svg>
+                <button class="btn-flex reporte-btn-cancelar" id="reporte-cancelar-btn">
                     Cancelar
                 </button>
             </div>
