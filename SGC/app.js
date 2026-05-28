@@ -5574,7 +5574,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Sumario de Vista — ${fecha}</title>
+<title>Reporte de Vista — ${fecha}</title>
 <style>
   :root { --blue: #4c72ac; --border: #e2e6ef; --muted: #5a6070; --bg: #f5f6fa; --card: #fff; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -5596,7 +5596,7 @@
 <body>
 <div class="reporte-wrap">
   <header>
-    <div><h1>📋 Sumario CCTV</h1></div>
+    <div><h1>📋 Reporte CCTV</h1></div>
     <div class="meta">Exportado el ${fecha}<br>Criterio de agrupamiento: Unidades por ${_activos.orden.toUpperCase()}</div>
   </header>
   ${htmlResumen}
