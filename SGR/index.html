@@ -526,7 +526,6 @@
                 <div class="form-group servicio-info-rack">
                     <p id="editar-servicio-info" class="td-muted td-sm"></p>
                 </div>
-
                 <div class="form-group">
                     <label>Número de Rack <span class="required">*</span></label>
                     <input type="text" id="editar-servicio-numero" placeholder="ej: 0001" maxlength="20"
@@ -547,6 +546,16 @@
                     <label>Dependencia</label>
                     <input type="text" id="editar-servicio-dependencia" placeholder="ej: Sala de servidores"
                         maxlength="100" autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label>Identificador</label>
+                    <div class="input-with-btn">
+                        <input type="text" id="editar-servicio-identificador" readonly
+                            title="El identificador se genera automáticamente">
+                        <button class="btn-input-side" id="editar-servicio-ir-rack-btn" title="Ver activo">
+                            <svg class="svg-icon"><use href="#icon-external-link" /></svg>
+                        </button>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer modal-footer-col">
@@ -604,14 +613,19 @@
                     </div>
                 </div>
                 <div class="form-group">
-                    <label>Identificador</label>
-                    <input type="text" id="rack-identificador-editar" readonly
-                        title="El identificador se genera automáticamente">
-                </div>
-                <div class="form-group">
                     <label>Notas</label>
                     <input type="text" id="rack-notas-editar" placeholder="Observaciones opcionales…" maxlength="200"
                         autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label>Identificador</label>
+                    <div class="input-with-btn">
+                        <input type="text" id="rack-identificador-editar" readonly
+                            title="El identificador se genera automáticamente">
+                        <button class="btn-input-side" id="rack-editar-ir-servicio-btn" title="Ver en servicio" hidden>
+                            <svg class="svg-icon"><use href="#icon-external-link" /></svg>
+                        </button>
+                    </div>
                 </div>
                 <!-- Dar de baja -->
                 <div class="baja-section" id="baja-section">

@@ -603,6 +603,10 @@ function abrirModalEditarRack(id) {
     }
 
     MM.abrir('modal-rack-editar');
+
+    // Mostrar botón "ir a servicio" solo si el rack está en servicio
+    const irServicioBtn = document.getElementById('rack-editar-ir-servicio-btn');
+    if (irServicioBtn) irServicioBtn.hidden = rack.estado !== 'servicio';
 }
 
 let _editandoServicioId = null;
@@ -615,6 +619,7 @@ function abrirModalEditarServicio(id) {
         if (el) { el.value = v ?? ''; el.classList.remove('error'); }
     };
     set('editar-servicio-numero', rack.numero);
+    set('editar-servicio-identificador', rack.identificador);
     GestorEdificios.poblarSelect('editar-servicio-edificio', rack.edificio);
     set('editar-servicio-piso', rack.piso);
     set('editar-servicio-dependencia', rack.dependencia);
@@ -1892,6 +1897,11 @@ function _initBindings() {
     document.getElementById('editar-servicio-guardar-btn')?.addEventListener('click', guardarEditarServicio);
     document.getElementById('editar-servicio-quitar-btn')?.addEventListener('click', quitarDeServicio);
     document.getElementById('editar-servicio-cancelar-btn')?.addEventListener('click', () => MM.cerrar('modal-rack-editar-servicio'));
+    // Botón ir al activo (desde editar-servicio → editar-rack)
+    document.getElementById('editar-servicio-ir-rack-btn')?.addEventListener('click', () => {
+        if (!_editandoServicioId) return;
+        MM.nav('modal-rack-editar-servicio', () => abrirModalEditarRack(_editandoServicioId));
+    });
     // Cerrar FAB al hacer click fuera
     document.addEventListener('click', e => {
         if (_fabOpen && !e.target.closest('#fab-container')) cerrarFab();
@@ -1909,6 +1919,11 @@ function _initBindings() {
     document.getElementById('rack-editar-eliminar-btn')?.addEventListener('click', eliminarRackActual);
     document.getElementById('rack-editar-cancelar-btn')?.addEventListener('click', () => MM.cerrar('modal-rack-editar'));
     document.getElementById('rack-editar-baja-btn')?.addEventListener('click', toggleBajaRack);
+    // Botón ir a servicio (desde editar-rack → editar-servicio)
+    document.getElementById('rack-editar-ir-servicio-btn')?.addEventListener('click', () => {
+        if (!_editandoRackId) return;
+        MM.nav('modal-rack-editar', () => abrirModalEditarServicio(_editandoRackId));
+    });
 
     // Clics en filas de tablas
     document.getElementById('tabla-servicio')?.addEventListener('click', e => {
