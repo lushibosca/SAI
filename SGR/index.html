@@ -553,7 +553,9 @@
                         <input type="text" id="editar-servicio-identificador" readonly
                             title="El identificador se genera automáticamente">
                         <button class="btn-input-side" id="editar-servicio-ir-rack-btn" title="Ver activo">
-                            <svg class="svg-icon"><use href="#icon-external-link" /></svg>
+                            <svg class="svg-icon">
+                                <use href="#icon-external-link" />
+                            </svg>
                         </button>
                     </div>
                 </div>
@@ -623,7 +625,9 @@
                         <input type="text" id="rack-identificador-editar" readonly
                             title="El identificador se genera automáticamente">
                         <button class="btn-input-side" id="rack-editar-ir-servicio-btn" title="Ver en servicio" hidden>
-                            <svg class="svg-icon"><use href="#icon-external-link" /></svg>
+                            <svg class="svg-icon">
+                                <use href="#icon-external-link" />
+                            </svg>
                         </button>
                     </div>
                 </div>
@@ -667,7 +671,7 @@
                 <h3><svg class="svg-icon">
                         <use href="#icon-settings" />
                     </svg> Ajustes</h3>
-                    <span class="modal-header-version">v260527</span>
+                <span class="modal-header-version">v260527</span>
             </div>
             <div class="modal-body modal-body-pb">
                 <p class="ajustes-section-label">Sincronización</p>
@@ -893,17 +897,19 @@
                 </div>
                 <input type="file" id="importar-file-input" accept=".json" class="input-hidden">
             </div>
-            <div class="modal-footer">
-                <button class="btn-primary btn-flex" id="importar-combinar-btn" disabled>
-                    <svg class="svg-icon">
-                        <use href="#icon-combine" />
-                    </svg> Combinar
-                </button>
-                <button class="btn-danger btn-flex" id="importar-confirmar-btn" disabled>
-                    <svg class="svg-icon">
-                        <use href="#icon-replace-swap" />
-                    </svg> Reemplazar
-                </button>
+            <div class="modal-footer modal-footer-col">
+                <div class="flex-row-gap">
+                    <button class="btn-primary btn-flex" id="importar-combinar-btn" disabled>
+                        <svg class="svg-icon">
+                            <use href="#icon-combine" />
+                        </svg> Combinar
+                    </button>
+                    <button class="btn-danger btn-flex" id="importar-confirmar-btn" disabled>
+                        <svg class="svg-icon">
+                            <use href="#icon-replace-swap" />
+                        </svg> Reemplazar
+                    </button>
+                </div>
                 <button class="btn-flex" id="importar-cerrar-btn">
                     <svg class="svg-icon">
                         <use href="#icon-back" />
@@ -942,7 +948,9 @@
         <div class="modal-content modal-content-md">
             <div class="modal-header">
                 <h3>
-                    <svg class="svg-icon"><use href="#icon-report" /></svg>
+                    <svg class="svg-icon">
+                        <use href="#icon-report" />
+                    </svg>
                     Generar reporte
                 </h3>
             </div>
@@ -955,7 +963,9 @@
             </div>
             <div class="modal-footer reporte-footer">
                 <button class="btn-primary btn-flex reporte-btn-descargar" id="reporte-confirmar-btn">
-                    <svg class="svg-icon"><use href="#icon-download" /></svg>
+                    <svg class="svg-icon">
+                        <use href="#icon-download" />
+                    </svg>
                     Descargar
                 </button>
                 <button class="btn-flex reporte-btn-cancelar" id="reporte-cancelar-btn">

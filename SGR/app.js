@@ -231,10 +231,16 @@ const MM = (() => {
     }
     // ────────────────────────────────────────────────────────
 
+    const _onCerrar = {};
     function _onMD(e) { _mdDown = e.target === e.currentTarget; }
-    function _onClick(e) { if (!_mdDown) return; if (e.target === e.currentTarget) cerrar(e.target.id); }
-    function abrir(id, cb) {
+    function _onClick(e) { if (!_mdDown) return; if (e.target === e.currentTarget) _cerrarConPadre(e.target.id); }
+    function _cerrarConPadre(id) { const fn = _onCerrar[id]; if (fn) fn(); else cerrar(id); }
+    function abrir(id, optsOrCb) {
         const m = document.getElementById(id); if (!m) return;
+        let cb, onEscape;
+        if (typeof optsOrCb === 'function') { cb = optsOrCb; }
+        else if (optsOrCb && typeof optsOrCb === 'object') { cb = optsOrCb.cb; onEscape = optsOrCb.onEscape; }
+        if (onEscape) { _onCerrar[id] = onEscape; } else { delete _onCerrar[id]; }
         m.classList.add('show'); document.body.classList.add('modal-open');
         if (!_back && !_nav) history.pushState({ rckModal: id }, '');
         setTimeout(() => { m.addEventListener('mousedown', _onMD); m.addEventListener('click', _onClick); }, 100);
@@ -243,6 +249,7 @@ const MM = (() => {
     }
     function cerrar(id, cb) {
         const m = document.getElementById(id); if (!m) return;
+        delete _onCerrar[id];
         m.classList.remove('show');
         if (!document.querySelector('.modal.show')) document.body.classList.remove('modal-open');
         m.removeEventListener('mousedown', _onMD); m.removeEventListener('click', _onClick);
@@ -252,6 +259,7 @@ const MM = (() => {
     }
     function cerrarTodos() {
         document.querySelectorAll('.modal.show').forEach(m => {
+            delete _onCerrar[m.id];
             m.classList.remove('show');
             m.removeEventListener('mousedown', _onMD); m.removeEventListener('click', _onClick);
             _removerTrap(m);
@@ -260,7 +268,10 @@ const MM = (() => {
     }
     function cerrarTop() {
         const abiertos = [...document.querySelectorAll('.modal.show')];
-        if (!abiertos.length) return; cerrar(abiertos[abiertos.length - 1].id);
+        if (!abiertos.length) return;
+        const conHandler = abiertos.filter(m => _onCerrar[m.id]);
+        const target = conHandler.length ? conHandler[conHandler.length - 1] : abiertos[abiertos.length - 1];
+        _cerrarConPadre(target.id);
     }
     function nav(desde, fn) {
         _nav = true; cerrar(desde);
@@ -294,13 +305,19 @@ function _flushToast() {
 //  CONFIRMAR
 // ═══════════════════════════════════════════════════════
 let _confirmarCb = null, _confirmarPadreId = null;
+
+function _volverAlPadreConfirmar() {
+    _confirmarCb = null;
+    MM.cerrar('modal-confirmar');
+}
+
 function confirmar(titulo, texto, cb) {
     document.getElementById('confirmar-titulo').textContent = titulo;
     document.getElementById('confirmar-texto').textContent = texto;
     _confirmarCb = cb;
     const abiertos = [...document.querySelectorAll('.modal.show')];
     _confirmarPadreId = abiertos.length ? abiertos[abiertos.length - 1].id : null;
-    MM.abrir('modal-confirmar');
+    MM.abrir('modal-confirmar', { onEscape: () => _volverAlPadreConfirmar() });
 }
 
 // ═══════════════════════════════════════════════════════
@@ -432,7 +449,7 @@ const UI = {
         MM.abrir('modal-rack-nuevo');
     },
     cerrarNuevoRack() { MM.cerrar('modal-rack-nuevo'); },
-    abrirGist() { MM.nav('modal-ajustes', () => { GistSync.poblarModal(); MM.abrir('modal-gist'); }); },
+    abrirGist() { MM.nav('modal-ajustes', () => { GistSync.poblarModal(); MM.abrir('modal-gist', { onEscape: () => UI.cerrarGist() }); }); },
     cerrarGist() { MM.nav('modal-gist', () => MM.abrir('modal-ajustes')); },
     abrirAjustes() { MM.abrir('modal-ajustes'); },
     cerrarAjustes() { MM.cerrar('modal-ajustes'); },
@@ -445,7 +462,14 @@ const UI = {
             document.getElementById('importar-confirmar-btn').disabled = true;
             document.getElementById('importar-combinar-btn').disabled = true;
             _importarParsed = null;
-            MM.abrir('modal-importar', () => setTimeout(() => document.getElementById('importar-file-input').click(), 400));
+            MM.abrir('modal-importar', {
+                onEscape: () => UI.cerrarImportar()
+            });
+
+            // Se ejecuta inmediatamente después de pedir abrir el modal
+            setTimeout(() => {
+                document.getElementById('importar-file-input')?.click();
+            }, 400);
         });
     },
     cerrarImportar() { MM.nav('modal-importar', () => MM.abrir('modal-ajustes')); },
@@ -498,7 +522,7 @@ const GestorEdificios = (() => {
 
     function abrir() {
         _renderLista();
-        MM.nav('modal-ajustes', () => MM.abrir('modal-edificios'));
+        MM.nav('modal-ajustes', () => MM.abrir('modal-edificios', { onEscape: () => cerrar() }));
     }
 
     function cerrar() {
@@ -850,7 +874,7 @@ function _coincideBusqueda(r, busqRaw, campos) {
 
     // 1. Extraemos los "tokens" respetando frases entre comillas ("anexo c" -> no se separa)
     const tokensRaw = busqRaw.match(/"[^"]+"|\S+/g) || [];
-    
+
     // 2. Limpiamos las comillas y normalizamos cada bloque de búsqueda
     const tokens = tokensRaw.map(t => normalizarTexto(t.replace(/"/g, '')));
 
@@ -871,12 +895,12 @@ function _getRacksFiltrados() {
     // Tomamos el valor crudo sin normalizar acá, para no destruir las comillas
     const busqRaw = document.getElementById('busq-global')?.value || '';
     let racks = [...state.racks];
-    
+
     if (busqRaw.trim()) {
         const campos = _getCamposBusq();
         racks = racks.filter(r => _coincideBusqueda(r, busqRaw, campos));
     }
-    
+
     return _ordenarArray(racks, _sortInv.col, _sortInv.dir);
 }
 
@@ -1361,15 +1385,13 @@ function importarDatos(modo) {
 }
 
 function restablecerDatos() {
-    MM.cerrar('modal-ajustes');
-    setTimeout(() => {
-        confirmar('¿Restablecer todos los datos?', 'Se eliminarán todos los racks. Podés deshacer antes de cerrar la página.', () => {
-            historial.empujar('Restablecer todos los datos');
-            state.racks = [];
-            state.edificios = [];
-            guardar(); renderTodo(); toast('Datos restablecidos');
-        });
-    }, 200);
+    confirmar('¿Restablecer todos los datos?', 'Se eliminarán todos los racks. Podés deshacer antes de cerrar la página.', () => {
+        historial.empujar('Restablecer todos los datos');
+        state.racks = [];
+        state.edificios = [];
+        MM.cerrar('modal-ajustes');
+        guardar(); renderTodo(); toast('Datos restablecidos');
+    });
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1798,7 +1820,7 @@ function generarReporteInventario(gruposFiltrados) {
     }
 
     const _agrupLabel = typeof _agrupInv !== 'undefined' && _agrupInv !== 'ninguno' ? _agrupInv : 'sin agrupar';
-    
+
     // ── NUEVO: Capturar texto de búsqueda ──
     const terminoBusqueda = document.getElementById('busq-global')?.value.trim() || '';
     const infoFiltro = terminoBusqueda ? `<br>Filtrado por: <strong>"${esc(terminoBusqueda)}"</strong>` : '';
@@ -1983,7 +2005,7 @@ function _initBindings() {
         const cb = _confirmarCb; _confirmarCb = null;
         cb?.();
     });
-    document.getElementById('confirmar-cancelar')?.addEventListener('click', () => { _confirmarCb = null; MM.cerrar('modal-confirmar'); });
+    document.getElementById('confirmar-cancelar')?.addEventListener('click', () => _volverAlPadreConfirmar());
 
     // Ordenamiento de tablas con delegación de eventos (Soporta clics en la vista plana y agrupada)
     document.getElementById('panel-inventario')?.addEventListener('click', e => {
