@@ -2095,7 +2095,7 @@
         }
 
         .stat-chip-label-stock-bajo {
-            color: var(--c-gold);
+            color: var(--text-muted);
             font-size: 1rem;
             font-weight: 700;
             text-transform: uppercase;
