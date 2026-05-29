@@ -334,10 +334,24 @@ function toggleDarkMode() {
 //  FAB DROPDOWN
 // ═══════════════════════════════════════════════════════
 let _fabOpen = false;
+
+function _getFabOverlay() {
+    let el = document.getElementById('fab-overlay');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'fab-overlay';
+        el.className = 'modal fab-overlay';
+        el.addEventListener('click', cerrarFab);
+        document.body.appendChild(el);
+    }
+    return el;
+}
+
 function cerrarFab() {
     _fabOpen = false;
     document.getElementById('fab-menu')?.classList.remove('show');
     document.getElementById('btn-fab-main')?.classList.remove('active');
+    document.getElementById('fab-overlay')?.classList.remove('show');
 }
 function _cerrarFiltro() {
     const m = document.getElementById('busq-filtro-menu');
@@ -363,6 +377,7 @@ function toggleFab() {
         _fabOpen = true;
         document.getElementById('fab-menu')?.classList.add('show');
         document.getElementById('btn-fab-main')?.classList.add('active');
+        _getFabOverlay().classList.add('show');
     }
 }
 

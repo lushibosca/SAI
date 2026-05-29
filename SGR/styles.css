@@ -1072,7 +1072,6 @@ input[type="file"].hidden {
     color: var(--c-red);
 }
 
-/* toggle-row */
 /* Enlace de Gist con ícono pequeño */
 .gist-link-icon {
     width: 14px;
@@ -1125,8 +1124,12 @@ input[type="file"].hidden {
     width: 40px;
     height: 40px;
     padding: 0;
-    background: transparent;
+    background: var(--c-gray-btn);
     border-radius: var(--radius);
+}
+
+.icon-btn-trans {
+    background: transparent;
 }
 
 .icon-btn-spinning svg {
@@ -1398,6 +1401,12 @@ input[type="file"].hidden {
     opacity: 1;
     visibility: visible;
     transform: translateY(0) scale(1);
+}
+
+/* Overlay del FAB: reutiliza los estilos de .modal pero sin contenido y con z-index menor */
+.fab-overlay {
+    z-index: 140;
+    pointer-events: auto;
 }
 
 
@@ -1975,8 +1984,10 @@ kbd {
     align-items: center;
     justify-content: center;
     padding: 0.55rem;
-    border-radius: var(--radius);
+    border-radius: 50%;
     flex-shrink: 0;
+    width: 40px;
+    height: 40px;
 }
 
 .edificios-lista {
@@ -1995,7 +2006,7 @@ kbd {
     background: var(--input-bg);
     border: var(--border-w) solid var(--border);
     border-radius: var(--radius);
-    padding: 0.55rem 0.75rem 0.55rem 0.9rem;
+    padding: 0.5rem;
 }
 
 .edificios-item-nombre {
@@ -2005,13 +2016,14 @@ kbd {
 }
 
 .edificios-item-eliminar {
-    color: var(--c-red);
-    opacity: 0.7;
+    color: var(--c-white);
     flex-shrink: 0;
+    background: var(--c-red);
+    transition: filter var(--t-fast);
 }
 
 .edificios-item-eliminar:hover {
-    opacity: 1;
+    filter: var(--hover);
 }
 
 /* ════════════════════════════════════════════════════════
