@@ -1049,9 +1049,9 @@ function renderResumenRacks() {
     );
 
     const _patNorm = r => (r.patrimonio || '').trim().toLowerCase();
-    const conPat = r => { const p = _patNorm(r); return p && p !== 'relevar' && p !== 'no'; };
-    const sinPat = r => _patNorm(r) === 'no';
-    const sinRel = r => { const p = _patNorm(r); return !p || p === 'relevar'; };
+    const conPat  = r => { const p = _patNorm(r); return p && p !== 'relevar' && p !== 'no'; };
+    const sinPat  = r => _patNorm(r) === 'no';
+    const sinRel  = r => { const p = _patNorm(r); return !p || p === 'relevar'; };
 
     const totalRacks = edificioFiltro
         ? enServicio
@@ -1061,10 +1061,10 @@ function renderResumenRacks() {
         {
             label: 'Racks (todos)',
             total: totalRacks.length,
-            conP: totalRacks.filter(conPat).length,
-            sinP: totalRacks.filter(sinPat).length,
-            sinR: totalRacks.filter(sinRel).length,
-            cls: '',
+            conP:  totalRacks.filter(conPat).length,
+            sinP:  totalRacks.filter(sinPat).length,
+            sinR:  totalRacks.filter(sinRel).length,
+            cls:   '',
         },
     ];
 
@@ -1193,7 +1193,7 @@ function _getGrupos(racks) {
             { titulo: 'Con patrimonio', racks: conPatr },
             { titulo: 'Sin patrimonio', racks: sinPatr },
             { titulo: 'A relevar', racks: aRelevar },
-        ].filter(g => g.racks.length > 0);
+        ].filter(g => g.racks.length > 0).sort((a, b) => a.titulo.localeCompare(b.titulo, 'es'));
     }
 
     if (_agrupInv === 'estado') {
@@ -1201,7 +1201,7 @@ function _getGrupos(racks) {
         return ['servicio', 'inventario', 'baja'].map(e => ({
             titulo: map[e],
             racks: racks.filter(r => r.estado === e),
-        })).filter(g => g.racks.length > 0);
+        })).filter(g => g.racks.length > 0).sort((a, b) => a.titulo.localeCompare(b.titulo, 'es'));
     }
 
     if (_agrupInv === 'edificio') {
@@ -1233,7 +1233,11 @@ function _getGrupos(racks) {
                 grupos.push({ titulo: ed, racks: [], totalCount: totalEd, subgrupos });
             }
         });
-        return grupos;
+        return grupos.sort((a, b) => {
+            if (a.titulo === 'Depósito') return 1;
+            if (b.titulo === 'Depósito') return -1;
+            return a.titulo.localeCompare(b.titulo, 'es');
+        });
     }
 
     if (_agrupInv === 'unidades') {
