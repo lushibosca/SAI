@@ -292,7 +292,7 @@ function toast(msg, tipo = 'success') {
 function _flushToast() {
     if (_toastBusy || !_toastQ.length) return;
     _currentToast = _toastQ.shift(); _toastBusy = true;
-    const el = DOM.toast || document.getElementById('toast');
+    const el = DOM.toast;
     el.textContent = _currentToast.msg;
     el.className = `toast show ${_currentToast.tipo}`;
     setTimeout(() => {
@@ -419,17 +419,15 @@ function switchTab(tab) {
 // ═══════════════════════════════════════════════════════
 let _busqTimer = null;
 function onBusqGlobal() {
-    const val = (DOM.busqGlobal || document.getElementById('busq-global')).value;
-    const clearBtn = DOM.busqClearBtn || document.getElementById('busq-clear-btn');
-    if (clearBtn) clearBtn.classList.toggle('visible', !!val);
+    const val = DOM.busqGlobal.value;
+    if (DOM.busqClearBtn) DOM.busqClearBtn.classList.toggle('visible', !!val);
     if (_busqTimer) clearTimeout(_busqTimer);
     _busqTimer = setTimeout(renderTodo, 300);
 }
 function limpiarBusqueda() {
     if (_busqTimer) clearTimeout(_busqTimer);
-    (DOM.busqGlobal || document.getElementById('busq-global')).value = '';
-    const clearBtn = DOM.busqClearBtn || document.getElementById('busq-clear-btn');
-    if (clearBtn) clearBtn.classList.remove('visible');
+    DOM.busqGlobal.value = '';
+    if (DOM.busqClearBtn) DOM.busqClearBtn.classList.remove('visible');
     renderTodo();
 }
 
@@ -582,6 +580,27 @@ const GestorEdificios = (() => {
 // ═══════════════════════════════════════════════════════
 //  RACK CRUD
 // ═══════════════════════════════════════════════════════
+// Devuelve el objeto de campos a aplicar cuando un rack sale del servicio.
+// estado: 'inventario' (quitar de servicio) | 'baja' (dar de baja)
+function _camposServicioVacio(estado = 'inventario') {
+    return { estado, numero: '', edificio: '', piso: '', dependencia: '' };
+}
+
+// Valida que el patrimonio no colisione con otro rack existente.
+// sufijo: 'nuevo' | 'editar' (para marcar el campo en error)
+// excluirId: id del rack actual en edición (null al crear)
+// Devuelve true si es válido, false si hay error (ya muestra toast).
+function _validarPatrimonio(pat, sufijo, excluirId = null) {
+    const patNorm = pat.toLowerCase();
+    const esDuplicable = patNorm === 'no' || patNorm === 'relevar';
+    if (!esDuplicable && state.racks.some(r => r.id !== excluirId && r.patrimonio.toLowerCase() === patNorm)) {
+        document.getElementById(`rack-patrimonio-${sufijo}`)?.classList.add('error');
+        toast(`Ya existe un rack con patrimonio "${pat}"`, 'error');
+        return false;
+    }
+    return true;
+}
+
 function _leerFormRack(sufijo) {
     const g = (id) => document.getElementById(`rack-${id}-${sufijo}`)?.value.trim() || '';
     return {
@@ -598,13 +617,7 @@ function guardarNuevoRack() {
     const uEl = document.getElementById('rack-unidades-nuevo');
     if (!datos.unidades) { uEl.classList.add('error'); toast('Las Unidades son obligatorias', 'error'); return; }
     if (!datos.patrimonio) datos.patrimonio = 'relevar';
-    const patNorm = datos.patrimonio.toLowerCase();
-    const esDuplicablePatrimonio = patNorm === 'no' || patNorm === 'relevar';
-    if (!esDuplicablePatrimonio && state.racks.some(r => r.patrimonio.toLowerCase() === patNorm)) {
-        document.getElementById('rack-patrimonio-nuevo')?.classList.add('error');
-        toast(`Ya existe un rack con patrimonio "${datos.patrimonio}"`, 'error');
-        return;
-    }
+    if (!_validarPatrimonio(datos.patrimonio, 'nuevo')) return;
     historial.empujar(`Agregar rack (patrimonio ${datos.patrimonio})`);
 
     // CREACIÓN DEL IDENTIFICADOR BASADO EN EL ID
@@ -714,13 +727,7 @@ function quitarDeServicio() {
         () => {
             historial.empujar(`Quitar de servicio rack (${rack.numero})`);
             // Se limpian los campos de servicio al volver al inventario
-            actualizarRack(_editandoServicioId, {
-                estado: 'inventario',
-                numero: '',
-                edificio: '',
-                piso: '',
-                dependencia: ''
-            });
+            actualizarRack(_editandoServicioId, _camposServicioVacio());
             renderTodo(); MM.cerrar('modal-rack-editar-servicio');
             toast('Rack devuelto al inventario', 'info');
         }
@@ -734,13 +741,7 @@ function guardarEditarRack() {
     const uEl = document.getElementById('rack-unidades-editar');
     if (!datos.unidades) { uEl.classList.add('error'); toast('Las Unidades son obligatorias', 'error'); return; }
     if (!datos.patrimonio) datos.patrimonio = 'relevar';
-    const patNorm = datos.patrimonio.toLowerCase();
-    const esDuplicablePatrimonio = patNorm === 'no' || patNorm === 'relevar';
-    if (!esDuplicablePatrimonio && state.racks.some(r => r.id !== _editandoRackId && r.patrimonio.toLowerCase() === patNorm)) {
-        document.getElementById('rack-patrimonio-editar')?.classList.add('error');
-        toast(`Ya existe un rack con patrimonio "${datos.patrimonio}"`, 'error');
-        return;
-    }
+    if (!_validarPatrimonio(datos.patrimonio, 'editar', _editandoRackId)) return;
     const rack = state.racks.find(r => r.id === _editandoRackId);
     if (!_hayCambios(rack, datos)) { MM.cerrar('modal-rack-editar'); toast('Sin cambios', 'info'); return; }
     historial.empujar(`Editar rack (patrimonio ${datos.patrimonio})`);
@@ -771,13 +772,7 @@ function toggleBajaRack() {
             () => {
                 historial.empujar(`Dar de baja rack (patrimonio ${rack.patrimonio})`);
                 // Limpieza absoluta de parámetros de servicio al irse de baja
-                actualizarRack(_editandoRackId, {
-                    estado: 'baja',
-                    numero: '',
-                    edificio: '',
-                    piso: '',
-                    dependencia: ''
-                });
+                actualizarRack(_editandoRackId, _camposServicioVacio('baja'));
                 renderTodo(); MM.cerrar('modal-rack-editar');
                 toast(`Rack dado de baja`, 'info');
             }
@@ -824,7 +819,7 @@ function confirmarPonerEnServicio() {
 }
 
 function actualizarFabServicio() {
-    const btn = DOM.fabRackServicio || document.getElementById('fab-rack-servicio');
+    const btn = DOM.fabRackServicio;
     if (!btn) return;
     const hayDisponibles = state.racks.some(r => r.estado === 'inventario');
     btn.disabled = !hayDisponibles;
@@ -997,7 +992,7 @@ function renderDashboard() {
         </div>`;
     }).join('') : '<p class="td-muted td-sm">Sin datos</p>';
 
-    (DOM.statsGrid || document.getElementById('stats-grid')).innerHTML = `
+    DOM.statsGrid.innerHTML = `
         <div class="stat-chip">
             <span class="stat-chip-label">Racks</span>
             <span class="stat-chip-value">${total}</span>
@@ -1054,9 +1049,9 @@ function renderResumenRacks() {
     );
 
     const _patNorm = r => (r.patrimonio || '').trim().toLowerCase();
-    const conPat  = r => { const p = _patNorm(r); return p && p !== 'relevar' && p !== 'no'; };
-    const sinPat  = r => _patNorm(r) === 'no';
-    const sinRel  = r => { const p = _patNorm(r); return !p || p === 'relevar'; };
+    const conPat = r => { const p = _patNorm(r); return p && p !== 'relevar' && p !== 'no'; };
+    const sinPat = r => _patNorm(r) === 'no';
+    const sinRel = r => { const p = _patNorm(r); return !p || p === 'relevar'; };
 
     const totalRacks = edificioFiltro
         ? enServicio
@@ -1066,10 +1061,10 @@ function renderResumenRacks() {
         {
             label: 'Racks (todos)',
             total: totalRacks.length,
-            conP:  totalRacks.filter(conPat).length,
-            sinP:  totalRacks.filter(sinPat).length,
-            sinR:  totalRacks.filter(sinRel).length,
-            cls:   '',
+            conP: totalRacks.filter(conPat).length,
+            sinP: totalRacks.filter(sinPat).length,
+            sinR: totalRacks.filter(sinRel).length,
+            cls: '',
         },
     ];
 
@@ -1103,7 +1098,7 @@ function renderResumenRacks() {
 //  RENDER SERVICIO
 // ═══════════════════════════════════════════════════════
 function renderServicio() {
-    const busq = normalizarTexto((DOM.busqGlobal || document.getElementById('busq-global'))?.value || '');
+    const busq = normalizarTexto(DOM.busqGlobal?.value || '');
     let racks = state.racks.filter(r => r.estado === 'servicio');
     if (busq) {
         const campos = _getCamposBusq();
@@ -1112,9 +1107,9 @@ function renderServicio() {
     racks = _ordenarArray(racks, _sortServ.col, _sortServ.dir);
     _actualizarIndicadoresSort('panel-servicio', _sortServ);
 
-    const tbody = DOM.tablaServicio || document.getElementById('tabla-servicio');
-    const empty = DOM.servicioEmpty || document.getElementById('servicio-empty');
-    const count = DOM.servicioCount || document.getElementById('servicio-count');
+    const tbody = DOM.tablaServicio;
+    const empty = DOM.servicioEmpty;
+    const count = DOM.servicioCount;
     if (count) count.textContent = racks.length;
 
     if (!racks.length) {
@@ -1268,11 +1263,11 @@ function _htmlTablaGrupo(racks) {
 // ═══════════════════════════════════════════════════════
 function renderInventario() {
     const racks = _getRacksFiltrados();
-    const empty = DOM.inventarioEmpty || document.getElementById('inventario-empty');
-    const count = DOM.inventarioCount || document.getElementById('inventario-count');
+    const empty = DOM.inventarioEmpty;
+    const count = DOM.inventarioCount;
     const tablaWrap = document.getElementById('inv-tabla-wrap');
     const gruposWrap = document.getElementById('inv-grupos-wrap');
-    const tbody = DOM.tablaInventario || document.getElementById('tabla-inventario');
+    const tbody = DOM.tablaInventario;
 
     if (count) count.textContent = racks.length;
 
