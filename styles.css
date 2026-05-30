@@ -273,6 +273,25 @@ html.dark-mode .app-card:focus-visible {
     pointer-events: none;
 }
 
+/* ════ 6. FOOTER & VERSIÓN ════ */
+.footer {
+    margin-top: auto; /* Empuja el footer al fondo absoluto del body flex */
+    width: 100%;
+    max-width: 1000px; /* Alineado con el ancho máximo de tu contenedor */
+    margin-left: auto;
+    margin-right: auto;
+    padding: 1rem 1.5rem; /* Margen interno para que no pegue al borde */
+    display: flex;
+    justify-content: flex-end; /* Alinea el contenido a la derecha */
+}
+
+.app-version {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    user-select: none;
+}
+
 /* --- ESTADO DESHABILITADO --- */
 .app-card.disabled {
     opacity: 0.5;
