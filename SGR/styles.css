@@ -163,7 +163,6 @@ body.modal-open {
     flex: 1;
 }
 
-
 /* ════════════════════════════════════════════════════════
    LAYOUT
    ════════════════════════════════════════════════════════ */
@@ -298,7 +297,6 @@ body.modal-open {
     fill: var(--c-red);
 }
 
-
 /* ════════════════════════════════════════════════════════
    TABS
    ════════════════════════════════════════════════════════ */
@@ -392,7 +390,6 @@ body.modal-open {
     transform: translateX(200%);
 }
 
-
 /* ════════════════════════════════════════════════════════
    BÚSQUEDA
    ════════════════════════════════════════════════════════ */
@@ -485,7 +482,6 @@ body.modal-open {
     opacity: 1;
     color: var(--text-main);
 }
-
 
 /* Naranja cuando hay texto en el buscador */
 #busq-global:not(:placeholder-shown),
@@ -609,7 +605,6 @@ body.modal-open {
     visibility: hidden;
 }
 
-
 /* ════════════════════════════════════════════════════════
    CARDS
    ════════════════════════════════════════════════════════ */
@@ -649,10 +644,6 @@ body.modal-open {
 
 .card-no-mb {
     margin-bottom: 0;
-}
-
-.dist-card {
-    grid-column: 1 / -1;
 }
 
 /* ── Encabezados Ordenables (Sorting) ── */
@@ -799,15 +790,9 @@ tbody td {
 }
 
 /* Columnas de tabla con ancho fijo */
-.col-estado {
-    width: 90px;
-}
 
 /* Color rojo para botón de restablecer e ícono asociado */
 .btn-danger-text,
-.icon-danger {
-    color: var(--c-red);
-}
 
 /* Tabla con columnas de ancho igual */
 .table-equal-cols {
@@ -828,7 +813,6 @@ tbody td {
 .table-eq-4 td {
     width: 25%;
 }
-
 
 /* ════════════════════════════════════════════════════════
    FORMULARIOS & INPUTS
@@ -884,7 +868,7 @@ input[type="number"] {
 
 label,
 .ajustes-section-label {
-    font-size: var(--fs-sm);
+    font-size: var(--fs-xs);
     font-weight: 600;
     color: var(--text-muted);
     margin-bottom: 0.25rem;
@@ -895,10 +879,6 @@ label,
 
 label {
     display: block;
-}
-
-.ajustes-section-label {
-    font-size: var(--fs-xs);
 }
 
 .form-row {
@@ -1097,10 +1077,6 @@ input[type="file"].hidden {
 }
 
 /* Enlace de Gist con ícono pequeño */
-.gist-link-icon {
-    width: 14px;
-    height: 14px;
-}
 
 /* Input file oculto */
 .input-hidden {
@@ -1115,18 +1091,12 @@ input[type="file"].hidden {
     margin-left: 2px;
 }
 
-
 /* ════════════════════════════════════════════════════════
    BOTONES
    ════════════════════════════════════════════════════════ */
 
 .btn-primary {
     background: var(--c-blue);
-    color: var(--c-white);
-}
-
-.btn-success {
-    background: var(--c-green);
     color: var(--c-white);
 }
 
@@ -1245,27 +1215,6 @@ input[type="file"].hidden {
     display: none;
 }
 
-/* Fila de botones dentro del modal-footer-col-gap */
-.modal-footer-btn-row {
-    display: flex;
-    gap: 0.5rem;
-    width: 100%;
-}
-
-.btn-baja {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 0.75rem;
-    width: 100%;
-    border-radius: var(--radius);
-    color: var(--c-red);
-    font-size: var(--fs-base);
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 0.15s, border-color 0.15s;
-}
-
 /* ════════════════════════════════════════════════════════
    MODALES
    ════════════════════════════════════════════════════════ */
@@ -1342,11 +1291,6 @@ input[type="file"].hidden {
 }
 
 /* Modal footer en columna con gap */
-.modal-footer-col-gap {
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
 
 /* ════════════════════════════════════════════════════════
    FAB & SCROLL TOP
@@ -1398,7 +1342,6 @@ input[type="file"].hidden {
     pointer-events: auto;
 }
 
-
 /* ════════════════════════════════════════════════════════
    BADGES & ESTADO DE RACK
    ════════════════════════════════════════════════════════ */
@@ -1445,21 +1388,7 @@ input[type="file"].hidden {
     color: var(--text-muted);
 }
 
-.stat-chip-sub-flex {
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-}
-
 .svg-th-umbral,
-.svg-th-umbral-hidden {
-    /* reservado para futuros estilos de umbral */
-}
-
-.stat-chip-clickable {
-    cursor: pointer;
-    transition: filter var(--t-fast), transform var(--t-fast);
-}
 
 .stat-chip-clickable:active {
     transform: scale(0.97);
@@ -1524,7 +1453,6 @@ input[type="file"].hidden {
     color: var(--text-muted);
     text-align: right;
 }
-
 
 /* ════════════════════════════════════════════════════════
    AJUSTES & GIST
@@ -1653,18 +1581,11 @@ input[type="file"].hidden {
     font-weight: 400;
 }
 
-
 /* ── Sección de baja ── */
-.baja-divider {
-    height: 1px;
-    background: var(--border);
-    margin: 0.75rem 0;
-}
 
 .servicio-info-rack {
     padding: 0.4rem 0.5rem;
 }
-
 
 /* ════════════════════════════════════════════════════════
    TOAST
@@ -1713,7 +1634,6 @@ input[type="file"].hidden {
 .toast.info {
     background: var(--c-blue);
 }
-
 
 /* ════════════════════════════════════════════════════════
    MEDIA QUERIES
@@ -1786,7 +1706,6 @@ input[type="file"].hidden {
     }
 
 }
-
 
 /* ════════════════════════════════════════════════════════
    MISCELÁNEA
@@ -1948,9 +1867,6 @@ kbd {
 .inv-agrup-entrando {
     animation: invFadeIn 0.22s ease forwards;
 }
-
-
-
 
 @keyframes spin {
     from {
@@ -2186,11 +2102,6 @@ kbd {
     height: 12px;
 }
 
-.inv-grupo-chevron-right {
-    margin-left: auto;
-    transform: rotate(90deg);
-}
-
 .inv-grupo-tr-header.open .inv-grupo-chevron-right {
     transform: rotate(270deg);
 }
@@ -2380,14 +2291,8 @@ kbd {
     font-size: var(--fs-lg);
 }
 
-.resumen-td-con {
-    color: var(--text-muted);
-}
-
-.resumen-td-sin {
-    color: var(--text-muted);
-}
-
+.resumen-td-con,
+.resumen-td-sin,
 .resumen-td-rel {
     color: var(--text-muted);
 }
