@@ -761,9 +761,13 @@ function toggleBajaRack() {
         toast(`Rack reactivado`);
     } else {
         // Dar de baja
+        const enServicio = rack.estado === 'servicio';
+        const textoBaja = enServicio
+            ? 'Este rack está actualmente en servicio. Al darlo de baja se quitará del servicio y perderá su ubicación asignada.'
+            : 'El rack quedará marcado como baja. Podés reactivarlo después.';
         confirmar(
             `¿Dar de baja el rack "${rack.numero}"?`,
-            'El rack quedará marcado como baja. Podés reactivarlo después.',
+            textoBaja,
             () => {
                 historial.empujar(`Dar de baja rack (patrimonio ${rack.patrimonio})`);
                 // Limpieza absoluta de parámetros de servicio al irse de baja

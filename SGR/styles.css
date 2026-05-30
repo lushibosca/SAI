@@ -52,6 +52,7 @@
     /* UI */
     --c-gray-btn: #e8ebf3;
     --bg-toast: #1a1d23;
+    --bg-overlay: rgba(0, 0, 0, 0.45);
     --shadow: 0 1px 4px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04);
     --shadow-dropdown: 0 8px 24px rgba(0, 0, 0, 0.22);
     --radius: 20px;
@@ -70,11 +71,16 @@
     --t-theme: 0.3s ease;
 
     /* Escala tipográfica */
-    --fs-xs:   0.72rem;   /* badges, labels caps, thead */
-    --fs-sm:   0.80rem;   /* texto secundario, rack-badge */
-    --fs-base: 0.88rem;   /* tabla, items de lista */
-    --fs-md:   0.92rem;   /* inputs, botones, texto normal */
-    --fs-lg:   1rem;      /* modal-header, stat-chip-label */
+    --fs-xs: 0.72rem;
+    /* badges, labels caps, thead */
+    --fs-sm: 0.80rem;
+    /* texto secundario, rack-badge */
+    --fs-base: 0.88rem;
+    /* tabla, items de lista */
+    --fs-md: 0.92rem;
+    /* inputs, botones, texto normal */
+    --fs-lg: 1rem;
+    /* modal-header, stat-chip-label */
 }
 
 /* ════════════════════════════════════════════════════════
@@ -95,7 +101,6 @@ html.dark-mode body {
     --shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
     --hover: brightness(1.2);
 }
-
 
 /* ════════════════════════════════════════════════════════
    RESET & BASE
@@ -258,8 +263,12 @@ body.modal-open {
 .card-header h2 {
     font-size: var(--fs-md);
     font-weight: 700;
-    flex: 1;
     letter-spacing: -0.01em;
+}
+
+/* Badge de count pegado al h2, el conjunto empuja las actions a la derecha */
+.card-header h2+.badge {
+    margin-right: auto;
 }
 
 .modal-header {
@@ -793,8 +802,13 @@ tbody td {
     letter-spacing: 0.03em;
 }
 
-.rack-badge { font-size: var(--fs-sm); }
-.badge      { font-size: var(--fs-xs); }
+.rack-badge {
+    font-size: var(--fs-sm);
+}
+
+.badge {
+    font-size: var(--fs-xs);
+}
 
 /* Columnas de tabla con ancho fijo */
 .col-estado {
@@ -891,9 +905,13 @@ label,
     padding-left: 0.5rem;
 }
 
-label { display: block; }
+label {
+    display: block;
+}
 
-.ajustes-section-label { font-size: var(--fs-xs); }
+.ajustes-section-label {
+    font-size: var(--fs-xs);
+}
 
 .form-row {
     display: grid;
@@ -1294,7 +1312,7 @@ input[type="file"].hidden {
     pointer-events: none;
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.45);
+    background: var(--bg-overlay);
     z-index: 200;
     align-items: center;
     justify-content: center;
@@ -1745,8 +1763,6 @@ input[type="file"].hidden {
     .fab-menu-item:hover {
         background: var(--input-bg);
     }
-
-
 }
 
 @media (max-width: 700px) {
@@ -2118,7 +2134,8 @@ kbd {
 }
 
 .inv-thead-sticky th:hover {
-    background: var(--bg-card) !important; /* Fondo sólido en hover */
+    background: var(--bg-card) !important;
+    /* Fondo sólido en hover */
 }
 
 .inv-grupo-tr-header td {
