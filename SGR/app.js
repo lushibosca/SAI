@@ -514,7 +514,6 @@ const GestorEdificios = (() => {
             btn.title = 'Eliminar';
             btn.innerHTML = '<svg class="svg-icon"><use href="#icon-trash"/></svg>';
             btn.addEventListener('click', () => eliminar(i));
-            btn.disabled = ModalLocker.esBloqueado('modal-edificios');
             li.appendChild(span);
             li.appendChild(btn);
             lista.appendChild(li);
@@ -535,8 +534,8 @@ const GestorEdificios = (() => {
     }
 
     function abrir() {
-        ModalLocker.resetear('modal-edificios');
         _renderLista();
+        ModalLocker.resetear('modal-edificios');
         MM.nav('modal-ajustes', () => MM.abrir('modal-edificios', { onEscape: () => cerrar() }));
     }
 
@@ -606,6 +605,7 @@ const ModalLocker = (() => {
         _bloqueado[modalId] = bloqueado;
         const modal = document.getElementById(modalId);
         if (!modal) return;
+        modal.classList.toggle('modal--bloqueado', bloqueado);
 
         // Actualizar apariencia del botón de bloqueo
         const lockBtn = document.getElementById(cfg.lockBtnId);
