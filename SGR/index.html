@@ -106,6 +106,19 @@
                 <polyline points="7 10 12 15 17 10" />
                 <line x1="12" y1="15" x2="12" y2="3" />
             </symbol>
+            <symbol id="icon-cloud-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="16 16 12 12 8 16" />
+                <line x1="12" y1="12" x2="12" y2="21" />
+                <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
+            </symbol>
+            <!-- Cloud sync down -->
+            <symbol id="icon-cloud-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="8 16 12 20 16 16" />
+                <line x1="12" y1="20" x2="12" y2="11" />
+                <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
+            </symbol>
             <symbol id="icon-upload" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                 stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
@@ -725,12 +738,12 @@
                     </button>
                     <button class="ajustes-gist-quick-btn gist-quick-hidden" id="btn-ajustes-gist-subir" title="Subir">
                         <svg class="svg-icon">
-                            <use href="#icon-upload" />
+                            <use href="#icon-cloud-up" />
                         </svg>
                     </button>
                     <button class="ajustes-gist-quick-btn gist-quick-hidden" id="btn-ajustes-gist-bajar" title="Bajar">
                         <svg class="svg-icon">
-                            <use href="#icon-download" />
+                            <use href="#icon-cloud-down" />
                         </svg>
                     </button>
                 </div>
@@ -875,13 +888,13 @@
                 <div class="gist-actions-row">
                     <button class="btn-gist-action" id="btn-gist-subir">
                         <svg class="svg-icon">
-                            <use href="#icon-upload" />
+                            <use href="#icon-cloud-up" />
                         </svg>
                         Subir
                     </button>
                     <button class="btn-gist-action" id="btn-gist-bajar">
                         <svg class="svg-icon">
-                            <use href="#icon-download" />
+                            <use href="#icon-cloud-down" />
                         </svg>
                         Bajar
                     </button>

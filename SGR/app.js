@@ -2218,9 +2218,6 @@ function _initBindings() {
         renderInventario();
     });
 
-    // -- evento para el reporte --
-    document.getElementById('btn-reporte-inv')?.addEventListener('click', generarReporteInventario);
-
     document.querySelectorAll('#panel-servicio th.th-sortable').forEach(th => {
         th.addEventListener('click', () => {
             const col = th.dataset.sort;

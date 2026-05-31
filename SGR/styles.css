@@ -1241,11 +1241,6 @@ input[type="file"].hidden {
     display: none;
 }
 
-#btn-ajustes-gist-subir,
-#btn-ajustes-gist-bajar {
-    display: none;
-}
-
 /* ════════════════════════════════════════════════════════
    MODALES
    ════════════════════════════════════════════════════════ */
