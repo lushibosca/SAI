@@ -218,6 +218,16 @@
                 <line x1="9" y1="8" x2="15" y2="8" class="icon-line" stroke="currentColor"></line>
                 <line x1="17" y1="16" x2="23" y2="16" class="icon-line" stroke="currentColor"></line>
             </symbol>
+            <symbol id="icon-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </symbol>
+            <symbol id="icon-unlock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 9.9-1" />
+            </symbol>
         </defs>
     </svg>
 
@@ -594,11 +604,18 @@
                         </svg> Quitar
                     </button>
                 </div>
-                <button class="btn-full" id="editar-servicio-cancelar-btn">
-                    <svg class="svg-icon">
-                        <use href="#icon-cancelar" />
-                    </svg> Cancelar
-                </button>
+                <div class="flex-row-gap">
+                    <button class="btn-flex" id="editar-servicio-cancelar-btn">
+                        <svg class="svg-icon">
+                            <use href="#icon-cancelar" />
+                        </svg> Cancelar
+                    </button>
+                    <button class="btn-input-side btn-input-side--baja btn-icon-only" id="editar-servicio-lock-btn" title="Desbloquear edición">
+                        <svg class="svg-icon">
+                            <use href="#icon-lock" />
+                        </svg>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -671,11 +688,18 @@
                         </svg> Eliminar
                     </button>
                 </div>
-                <button class="btn-full" id="rack-editar-cancelar-btn">
-                    <svg class="svg-icon">
-                        <use href="#icon-cancelar" />
-                    </svg> Cancelar
-                </button>
+                <div class="flex-row-gap">
+                    <button class="btn-flex" id="rack-editar-cancelar-btn">
+                        <svg class="svg-icon">
+                            <use href="#icon-cancelar" />
+                        </svg> Cancelar
+                    </button>
+                    <button class="btn-input-side btn-input-side--baja btn-icon-only" id="rack-editar-lock-btn" title="Desbloquear edición">
+                        <svg class="svg-icon">
+                            <use href="#icon-lock" />
+                        </svg>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -744,8 +768,8 @@
             <div class="modal-footer">
                 <button class="btn-full" id="ajustes-cerrar-btn">
                     <svg class="svg-icon">
-                        <use href="#icon-back" />
-                    </svg> Volver
+                        <use href="#icon-cancelar" />
+                    </svg> Cerrar
                 </button>
                 <button class="btn-dark-mode-modal" id="btn-dark-mode" title="Modo oscuro">
                     <svg class="svg-icon">
@@ -781,11 +805,18 @@
                         </svg>
                     </button>
                 </div>
-                <button class="btn-full" id="edificios-cerrar-btn">
-                    <svg class="svg-icon">
-                        <use href="#icon-back" />
-                    </svg> Volver
-                </button>
+                <div class="flex-row-gap">
+                    <button class="btn-flex" id="edificios-cerrar-btn">
+                        <svg class="svg-icon">
+                            <use href="#icon-back" />
+                        </svg> Volver
+                    </button>
+                    <button class="btn-input-side btn-input-side--baja btn-icon-only" id="edificios-lock-btn" title="Desbloquear edición">
+                        <svg class="svg-icon">
+                            <use href="#icon-lock" />
+                        </svg>
+                    </button>
+                </div>
             </div>
         </div>
     </div>

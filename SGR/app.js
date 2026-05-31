@@ -514,6 +514,7 @@ const GestorEdificios = (() => {
             btn.title = 'Eliminar';
             btn.innerHTML = '<svg class="svg-icon"><use href="#icon-trash"/></svg>';
             btn.addEventListener('click', () => eliminar(i));
+            btn.disabled = ModalLocker.esBloqueado('modal-edificios');
             li.appendChild(span);
             li.appendChild(btn);
             lista.appendChild(li);
@@ -534,6 +535,7 @@ const GestorEdificios = (() => {
     }
 
     function abrir() {
+        ModalLocker.resetear('modal-edificios');
         _renderLista();
         MM.nav('modal-ajustes', () => MM.abrir('modal-edificios', { onEscape: () => cerrar() }));
     }
@@ -575,6 +577,57 @@ const GestorEdificios = (() => {
     }
 
     return { abrir, cerrar, agregar, poblarSelect };
+})();
+
+// ═══════════════════════════════════════════════════════
+//  MODAL LOCKER
+// ═══════════════════════════════════════════════════════
+const ModalLocker = (() => {
+    const CONFIGS = {
+        'modal-rack-editar': {
+            lockBtnId: 'rack-editar-lock-btn',
+            exemptIds: new Set(['rack-editar-cancelar-btn', 'rack-editar-ir-servicio-btn', 'rack-editar-lock-btn']),
+        },
+        'modal-rack-editar-servicio': {
+            lockBtnId: 'editar-servicio-lock-btn',
+            exemptIds: new Set(['editar-servicio-cancelar-btn', 'editar-servicio-ir-rack-btn', 'editar-servicio-lock-btn']),
+        },
+        'modal-edificios': {
+            lockBtnId: 'edificios-lock-btn',
+            exemptIds: new Set(['edificios-cerrar-btn', 'edificios-lock-btn']),
+        },
+    };
+
+    const _bloqueado = {};
+
+    function _aplicar(modalId, bloqueado) {
+        const cfg = CONFIGS[modalId];
+        if (!cfg) return;
+        _bloqueado[modalId] = bloqueado;
+        const modal = document.getElementById(modalId);
+        if (!modal) return;
+
+        // Actualizar apariencia del botón de bloqueo
+        const lockBtn = document.getElementById(cfg.lockBtnId);
+        if (lockBtn) {
+            lockBtn.classList.toggle('btn-input-side--baja', bloqueado);
+            lockBtn.title = bloqueado ? 'Desbloquear edición' : 'Bloquear edición';
+            const useEl = lockBtn.querySelector('use');
+            if (useEl) useEl.setAttribute('href', bloqueado ? '#icon-lock' : '#icon-unlock');
+        }
+
+        // Deshabilitar/habilitar todos los interactivos excepto los exentos
+        modal.querySelectorAll('input, select, textarea, button').forEach(el => {
+            if (cfg.exemptIds.has(el.id)) return;
+            el.disabled = bloqueado;
+        });
+    }
+
+    function resetear(modalId) { _aplicar(modalId, true); }
+    function toggle(modalId) { _aplicar(modalId, !_bloqueado[modalId]); }
+    function esBloqueado(modalId) { return !!_bloqueado[modalId]; }
+
+    return { resetear, toggle, esBloqueado };
 })();
 
 // ═══════════════════════════════════════════════════════
@@ -658,6 +711,7 @@ function abrirModalEditarRack(id) {
     // Mostrar botón "ir a servicio" solo si el rack está en servicio
     const irServicioBtn = document.getElementById('rack-editar-ir-servicio-btn');
     if (irServicioBtn) irServicioBtn.hidden = rack.estado !== 'servicio';
+    ModalLocker.resetear('modal-rack-editar');
 }
 
 let _editandoServicioId = null;
@@ -680,6 +734,7 @@ function abrirModalEditarServicio(id) {
         info.textContent = partes.join(' · ');
     }
     MM.abrir('modal-rack-editar-servicio');
+    ModalLocker.resetear('modal-rack-editar-servicio');
 }
 
 // Compara un objeto de campos nuevos contra las propiedades actuales de un rack.
@@ -2137,6 +2192,11 @@ function _initBindings() {
     document.getElementById('edificios-cerrar-btn')?.addEventListener('click', () => GestorEdificios.cerrar());
     document.getElementById('edificios-agregar-btn')?.addEventListener('click', () => GestorEdificios.agregar());
     document.getElementById('edificios-nuevo-input')?.addEventListener('keydown', e => { if (e.key === 'Enter') GestorEdificios.agregar(); });
+
+    // Botones de bloqueo de modales
+    document.getElementById('rack-editar-lock-btn')?.addEventListener('click', () => ModalLocker.toggle('modal-rack-editar'));
+    document.getElementById('editar-servicio-lock-btn')?.addEventListener('click', () => ModalLocker.toggle('modal-rack-editar-servicio'));
+    document.getElementById('edificios-lock-btn')?.addEventListener('click', () => ModalLocker.toggle('modal-edificios'));
 
     // Modal confirmar
     document.getElementById('confirmar-ok')?.addEventListener('click', () => {
